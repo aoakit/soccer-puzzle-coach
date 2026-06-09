@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>サッカー判断パズルコーチ v3.7 ごほうびガチャ</title>
+<title>サッカー判断パズルコーチ v3.8 ガチャ演出</title>
 <style>
     :root{
         --pitch:#1f6b3a;
@@ -452,6 +452,8 @@ let starsEarned = 0;
 let clearedCount = 0;
 let hintUsed = false;
 let puzzleMessage = '';
+let lastGachaReward = null;
+let gachaAnim = 0;
 const effects = [];
 const history = [];
 
@@ -1167,6 +1169,8 @@ function goalScored(shooter) {
     clearedCount++;
     totalClears++;
     const reward = drawGachaReward();
+    lastGachaReward = reward;
+    gachaAnim = 96;
     starsEarned = starRating();
     combo = 0;
     phase = 'clear';
@@ -1192,6 +1196,8 @@ function nextLevel() {
     starsEarned = 0;
     hintUsed = false;
     puzzleMessage = '';
+    lastGachaReward = null;
+    gachaAnim = 0;
     reset(24 + Math.min(12, level * 2) + Math.min(10, duplicateBonus * 2));
 }
 
@@ -1200,6 +1206,8 @@ function retryLevel() {
     combo = 0;
     hintUsed = false;
     puzzleMessage = '';
+    lastGachaReward = null;
+    gachaAnim = 0;
     reset(24);
 }
 
@@ -1258,6 +1266,8 @@ function reset(startChance) {
     combo = 0;
     hintUsed = false;
     puzzleMessage = '';
+    lastGachaReward = null;
+    gachaAnim = 0;
     effects.length = 0;
     history.length = 0;
     restState();
@@ -1896,6 +1906,75 @@ function drawEffects() {
     ctx.restore();
 }
 
+function drawGachaAnimation() {
+    if(phase !== 'clear' || !lastGachaReward || gachaAnim <= 0) return;
+
+    const t = 1 - gachaAnim / 96;
+    const reveal = clamp((t - 0.34) / 0.36, 0, 1);
+    const shine = Math.sin(t * Math.PI * 6) * 0.5 + 0.5;
+    const cx = fX0 + fW / 2;
+    const cy = fY0 + fH * 0.58;
+    const cardW = Math.min(260, fW * 0.68);
+    const cardH = 118;
+    const scale = 0.86 + reveal * 0.14;
+    const x = cx - cardW * scale / 2;
+    const y = cy - cardH * scale / 2;
+
+    ctx.save();
+    ctx.globalAlpha = clamp(t / 0.18, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(fX0, fY0, fW, fH);
+
+    for(let i = 0; i < 10; i++) {
+        const ang = i / 10 * Math.PI * 2 + t * 2.5;
+        const r1 = 34 + reveal * 18;
+        const r2 = 118 + shine * 12;
+        ctx.strokeStyle = i % 2 ? 'rgba(255,210,63,0.42)' : 'rgba(139,211,255,0.36)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1);
+        ctx.lineTo(cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2);
+        ctx.stroke();
+    }
+
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.translate(-cx, -cy);
+
+    const frontColor = lastGachaReward.isNew ? '#8bd3ff' : '#ffd23f';
+    const backColor = '#1b2a32';
+
+    ctx.shadowColor = frontColor;
+    ctx.shadowBlur = 16 + shine * 12;
+    ctx.fillStyle = reveal < 0.95 ? backColor : frontColor;
+    ctx.fillRect(x, y, cardW, cardH);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, y, cardW, cardH);
+
+    if(reveal < 0.95) {
+        ctx.fillStyle = '#ffd23f';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('ごほうび', cx, cy - 10);
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText('?', cx, cy + 28);
+    }
+    else {
+        ctx.fillStyle = '#102016';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(lastGachaReward.isNew ? 'NEW PLAYER' : 'BONUS', cx, y + 30);
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(lastGachaReward.title, cx, y + 66, cardW - 18);
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(lastGachaReward.trait.desc, cx, y + 92, cardW - 18);
+    }
+
+    ctx.restore();
+}
+
 function draw() {
     drawField();
     if(chance > 55) {
@@ -1910,6 +1989,7 @@ function draw() {
     }
     drawRewardHud();
     drawEffects();
+    drawGachaAnimation();
     for(const a of arrows) drawArrow(a);
     drawAim();
     for(const p of players) {
@@ -1952,6 +2032,7 @@ const HOLD = 16;
 function loop() {
     let moving = false;
     pulse *= 0.88;
+    if(gachaAnim > 0) gachaAnim--;
     for(let i = effects.length - 1; i >= 0; i--) {
         effects[i].life--;
         if(effects[i].life <= 0) effects.splice(i, 1);
