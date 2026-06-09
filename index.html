@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>サッカー判断パズルコーチ v3.7 ごほうびガチャ</title>
+<style>
+    :root{
+        --pitch:#1f6b3a;
+        --blue:#2f6df6;
+        --red:#e23b3b;
+        --accent:#ffd23f;
+        --ink:#ffffff;
+    }
+    html,body{
+        margin:0;
+        padding:0;
+        height:100%;
+        overflow:hidden;
+        background:#0e1a12;
+        font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+        color:var(--ink);
+        -webkit-text-size-adjust:100%;
+    }
+    canvas{
+        display:block;
+        width:100vw;
+        height:100vh;
+        touch-action:none;
+        -webkit-user-select:none;
+        user-select:none;
+        -webkit-touch-callout:none;
+    }
+    .row{
+        position:absolute;
+        left:0;
+        right:0;
+        display:flex;
+        gap:7px;
+        align-items:center;
+        padding:8px 10px;
+        box-sizing:border-box;
+        z-index:5;
+    }
+    #btns{
+        top:0;
+        justify-content:flex-end;
+        flex-wrap:wrap;
+        pointer-events:none;
+    }
+    #btns > *{
+        pointer-events:auto;
+    }
+    button, select{
+        font-family:inherit;
+        font-size:13px;
+        font-weight:800;
+        color:#fff;
+        border:none;
+        border-radius:8px;
+        padding:8px 10px;
+        background:rgba(255,255,255,0.16);
+        -webkit-tap-highlight-color:transparent;
+        cursor:pointer;
+        min-height:34px;
+    }
+    select{
+        color:#102016;
+        background:var(--accent);
+        max-width:118px;
+    }
+    button:active{ transform:scale(0.97); }
+    button.on, button.primary{
+        background:var(--accent);
+        color:#1a1205;
+    }
+    #status{
+        position:absolute;
+        top:52px;
+        left:10px;
+        right:10px;
+        z-index:5;
+        text-align:center;
+        font-size:16px;
+        font-weight:900;
+        padding:10px 12px;
+        border-radius:10px;
+        background:rgba(47,109,246,0.92);
+        box-shadow:0 4px 16px rgba(0,0,0,.35);
+        line-height:1.4;
+    }
+    #status small{
+        display:block;
+        margin-top:2px;
+        font-size:12px;
+        font-weight:700;
+        opacity:.92;
+    }
+    #status.ask{ background:rgba(255,176,0,.94); color:#1b1404; }
+    #status.lost{ background:rgba(226,59,59,.94); }
+    #status.clear{ background:rgba(28,178,105,.95); }
+    #passbar,
+    #shootbar,
+    #clearbar{
+        bottom:0;
+        justify-content:center;
+        padding-bottom:calc(10px + env(safe-area-inset-bottom));
+        background:linear-gradient(to top, rgba(0,0,0,.42), rgba(0,0,0,0));
+        display:none;
+    }
+    #feedback{
+        position:absolute;
+        left:10px;
+        right:10px;
+        bottom:calc(54px + env(safe-area-inset-bottom));
+        z-index:4;
+        background:rgba(0,0,0,.56);
+        border:1px solid rgba(255,255,255,.15);
+        border-radius:10px;
+        padding:9px 11px;
+        box-sizing:border-box;
+        min-height:34px;
+        font-size:13.5px;
+        line-height:1.5;
+    }
+    #feedback .mark{
+        font-size:19px;
+        font-weight:900;
+        margin-right:5px;
+    }
+    #feedback .hint{
+        opacity:.84;
+        font-size:12px;
+    }
+    @media (max-width:520px){
+        button, select{ font-size:12px; padding:7px 8px; }
+        #status{ top:84px; font-size:15px; }
+        #feedback{ font-size:13px; }
+    }
+</style>
+</head>
+<body>
+    <canvas id="cv"></canvas>
+
+    <div id="btns" class="row">
+        <select id="difficulty" aria-label="難易度">
+            <option value="easy">やさしい</option>
+            <option value="normal" selected>ふつう</option>
+            <option value="hard">むずかしい</option>
+        </select>
+        <button id="hintBtn">ヒント</button>
+        <button id="editBtn">配置編集</button>
+        <button id="undoBtn">1手戻す</button>
+        <button id="resetBtn">リセット</button>
+    </div>
+
+    <div id="status" class="you"></div>
+
+    <div id="passbar" class="row">
+        <button id="doPass" class="primary">このコースに出す ▶</button>
+        <button id="cancelPass">やめる</button>
+    </div>
+
+    <div id="shootbar" class="row">
+        <button id="shootBtn" class="primary">シュート ▶</button>
+    </div>
+
+    <div id="clearbar" class="row">
+        <button id="nextLevelBtn" class="primary">次の課題へ ▶</button>
+        <button id="retryLevelBtn">もう一回</button>
+    </div>
+
+    <div id="feedback"></div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const statusEl = document.getElementById('status');
+const fb = document.getElementById('feedback');
+const passbar = document.getElementById('passbar');
+const shootbar = document.getElementById('shootbar');
+const clearbar = document.getElementById('clearbar');
+const editBtn = document.getElementById('editBtn');
+const hintBtn = document.getElementById('hintBtn');
+const difficultySel = document.getElementById('difficulty');
+
+const DIFFICULTY = {
+    easy: {
+        label:'やさしい',
+        passReact:0.30,
+        cutScale:0.62,
+        farLane:2.35,
+        note:'相手の反応を短くして、良いコースが通りやすい設定です。'
+    },
+    normal: {
+        label:'ふつう',
+        passReact:0.42,
+        cutScale:0.78,
+        farLane:2.8,
+        note:'v2.5相当。成功体験と守備の気づきのバランスを取った設定です。'
+    },
+    hard: {
+        label:'むずかしい',
+        passReact:0.56,
+        cutScale:0.92,
+        farLane:3.15,
+        note:'相手が少し早く反応します。コースと受けた後をよく見よう。'
+    }
+};
+
+let difficulty = 'normal';
+let W, H, fX0, fY0, fX1, fY1, fW, fH, R, STEP, AI_STEP, PASS_REACT_STEP, INTERCEPT_R, STEAL_R, MARK_TIGHT;
+
+function activeDifficulty() {
+    return DIFFICULTY[difficulty] || DIFFICULTY.normal;
+}
+
+function computeField() {
+    const dpr = window.devicePixelRatio || 1;
+
+    W = Math.floor((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth);
+    H = Math.floor((window.visualViewport && window.visualViewport.height) || window.innerHeight || document.documentElement.clientHeight);
+
+    cv.style.width = W + 'px';
+    cv.style.height = H + 'px';
+    cv.width = Math.floor(W * dpr);
+    cv.height = Math.floor(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    fX0 = 14;
+    fX1 = W - 14;
+    fY0 = W < 520 ? 126 : 96;
+    fY1 = H - 58;
+
+    fW = fX1 - fX0;
+    fH = Math.max(220, fY1 - fY0);
+
+    R = Math.max(15, Math.min(fW, fH) * 0.036);
+    STEP = Math.min(fW, fH) * 0.085;
+    AI_STEP = STEP * 0.85;
+
+    INTERCEPT_R = R * 2.1;
+    STEAL_R = R * 1.95;
+    MARK_TIGHT = R * 2.8;
+    PASS_REACT_STEP = AI_STEP * activeDifficulty().passReact;
+}
+
+computeField();
+
+function frac(fx, fy) {
+    return { x:fX0 + fx * fW, y:fY0 + fy * fH };
+}
+
+const BLUE_FORM = [
+    [0.35,0.83],
+    [0.65,0.83],
+    [0.22,0.64],
+    [0.50,0.67],
+    [0.78,0.64],
+    [0.40,0.46],
+    [0.60,0.46]
+];
+
+const RED_FORM  = [
+    [0.35,0.22],
+    [0.65,0.22],
+    [0.25,0.42],
+    [0.50,0.39],
+    [0.75,0.42],
+    [0.40,0.56],
+    [0.60,0.56]
+];
+
+const LEVELS = [
+    {
+        name:'レベル1: 前を見る',
+        red: RED_FORM
+    },
+    {
+        name:'レベル2: 中を閉じる相手',
+        red: [
+            [0.38,0.24], [0.62,0.24], [0.33,0.42], [0.50,0.37], [0.67,0.42], [0.43,0.57], [0.57,0.57]
+        ]
+    },
+    {
+        name:'レベル3: サイドへ誘導',
+        red: [
+            [0.30,0.23], [0.70,0.23], [0.20,0.43], [0.48,0.40], [0.80,0.43], [0.34,0.56], [0.66,0.56]
+        ]
+    },
+    {
+        name:'レベル4: FWをマーク',
+        red: [
+            [0.36,0.27], [0.64,0.27], [0.30,0.45], [0.52,0.38], [0.70,0.45], [0.40,0.50], [0.60,0.50]
+        ]
+    },
+    {
+        name:'レベル5: コースを先に消す',
+        red: [
+            [0.34,0.25], [0.66,0.25], [0.27,0.39], [0.50,0.35], [0.73,0.39], [0.45,0.53], [0.55,0.53]
+        ]
+    }
+];
+
+const BLUE_ROLES = ['DF','DF','MF','MF','MF','FW','FW'];
+const RED_ROLES  = ['DF','DF','MF','MF','MF','FW','FW'];
+const BASE_TRAIT = { name:'標準', desc:'まずは基本の動き', dribble:1.00, keep:1.00, pass:1.00, speed:1.00, finish:1.00 };
+const SPECIAL_TRAITS = [
+    { name:'安定', desc:'後ろで逃げ道を作る', dribble:1.00, keep:1.00, pass:1.04, speed:0.98, finish:1.00 },
+    { name:'展開', desc:'横に開いて作り直す', dribble:0.98, keep:1.00, pass:1.12, speed:1.00, finish:1.00 },
+    { name:'快速', desc:'外を走って前進を助ける', dribble:1.04, keep:1.00, pass:1.00, speed:1.18, finish:1.00 },
+    { name:'司令塔', desc:'受け直しとパスが得意', dribble:1.00, keep:0.96, pass:1.18, speed:1.02, finish:1.00 },
+    { name:'ドリブル', desc:'斜めの角度で受けて運べる', dribble:1.18, keep:0.82, pass:0.98, speed:1.04, finish:1.00 },
+    { name:'スプリント', desc:'裏へ抜ける動きが速い', dribble:1.06, keep:0.95, pass:1.00, speed:1.22, finish:1.04 },
+    { name:'フィニッシュ', desc:'ゴール前へ入るのが得意', dribble:1.02, keep:0.92, pass:1.04, speed:1.06, finish:1.18 }
+];
+const GACHA_POOL = [
+    { slot:4, trait:SPECIAL_TRAITS[4], title:'青5番 ドリブル型', weight:18 },
+    { slot:3, trait:SPECIAL_TRAITS[3], title:'青4番 司令塔', weight:16 },
+    { slot:5, trait:SPECIAL_TRAITS[5], title:'青6番 スプリント型', weight:15 },
+    { slot:6, trait:SPECIAL_TRAITS[6], title:'青7番 フィニッシュ型', weight:14 },
+    { slot:2, trait:SPECIAL_TRAITS[2], title:'青3番 快速型', weight:14 },
+    { slot:1, trait:SPECIAL_TRAITS[1], title:'青2番 展開型', weight:12 },
+    { slot:0, trait:SPECIAL_TRAITS[0], title:'青1番 安定型', weight:11 }
+];
+const PROGRESS_KEY = 'soccerPuzzleCoachProgressV1';
+let players = [];
+let level = 1;
+let goals = 0;
+let progress = loadProgress();
+let totalClears = progress.totalClears;
+let unlockedSlots = progress.unlockedSlots;
+let duplicateBonus = progress.duplicateBonus || 0;
+
+function buildPlayers() {
+    players = [];
+    const levelData = levelSetup();
+    BLUE_FORM.forEach((f, i) => {
+        const p = frac(f[0], f[1]);
+        players.push(mk('blue', i + 1, BLUE_ROLES[i], p.x, p.y, f[0], f[1], playerTrait(i)));
+    });
+    levelData.red.forEach((f, i) => {
+        const p = frac(f[0], f[1]);
+        players.push(mk('red', i + 1, RED_ROLES[i], p.x, p.y, f[0], f[1], null));
+    });
+}
+
+function loadProgress() {
+    try {
+        const raw = window.localStorage ? window.localStorage.getItem(PROGRESS_KEY) : null;
+        const data = raw ? JSON.parse(raw) : {};
+        const total = Number.isFinite(data.totalClears) ? Math.max(0, data.totalClears) : 0;
+        let slots = Array.isArray(data.unlockedSlots) ? data.unlockedSlots.filter(n => Number.isInteger(n)) : [];
+        if(slots.length === 0 && total > 0) {
+            slots = GACHA_POOL.filter((_, i) => i < Math.min(total, GACHA_POOL.length)).map(r => r.slot);
+        }
+        return {
+            totalClears: total,
+            unlockedSlots: Array.from(new Set(slots)),
+            duplicateBonus: Number.isFinite(data.duplicateBonus) ? Math.max(0, data.duplicateBonus) : 0
+        };
+    }
+    catch(err) {
+        return { totalClears:0, unlockedSlots:[], duplicateBonus:0 };
+    }
+}
+
+function saveProgress() {
+    try {
+        if(window.localStorage) {
+            window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ totalClears, unlockedSlots, duplicateBonus }));
+        }
+    }
+    catch(err) {}
+}
+
+function playerTrait(index) {
+    let trait = BASE_TRAIT;
+    const recruit = GACHA_POOL.find(r => r.slot === index);
+    if(recruit && unlockedSlots.includes(index)) {
+        trait = recruit.trait;
+    }
+    return trait;
+}
+
+function drawGachaReward() {
+    const locked = GACHA_POOL.filter(r => !unlockedSlots.includes(r.slot));
+    const pool = locked.length ? locked : GACHA_POOL;
+    const totalWeight = pool.reduce((sum, r) => sum + r.weight, 0);
+    let roll = Math.random() * totalWeight;
+    let picked = pool[pool.length - 1];
+    for(const r of pool) {
+        roll -= r.weight;
+        if(roll <= 0) {
+            picked = r;
+            break;
+        }
+    }
+    const isNew = !unlockedSlots.includes(picked.slot);
+    if(isNew) {
+        unlockedSlots.push(picked.slot);
+    }
+    else {
+        duplicateBonus++;
+    }
+    saveProgress();
+    return { ...picked, isNew };
+}
+
+function nextRecruitText() {
+    const remain = GACHA_POOL.length - unlockedSlots.length;
+    if(remain <= 0) return '全特徴解放済み / 重複でチャンス初期値アップ';
+    return 'ごほうびガチャ: 未加入あと' + remain + '人';
+}
+
+function levelSetup() {
+    const base = LEVELS[(level - 1) % LEVELS.length];
+    const cycle = Math.floor((level - 1) / LEVELS.length);
+    const mirror = cycle % 2 === 1;
+    const slide = ((cycle % 3) - 1) * 0.035;
+    const squeeze = Math.min(0.035, cycle * 0.010);
+    return {
+        name: base.name,
+        red: base.red.map(([x, y], i) => {
+            let nx = mirror ? 1 - x : x;
+            nx = clamp(nx + slide * (i % 2 === 0 ? 1 : -0.6), 0.16, 0.84);
+            const ny = clamp(y + squeeze * (i >= 5 ? -1 : 1), 0.18, 0.62);
+            return [nx, ny];
+        })
+    };
+}
+
+function mk(team, num, role, x, y, baseFx, baseFy, trait) {
+    return { team, num, role, trait, x, y, tx:x, ty:y, baseFx, baseFy };
+}
+
+const ball = { x:0, y:0, tx:0, ty:0, holder:null };
+let phase = 'you';
+let mode = 'drill';
+let busy = false;
+let ballFlight = false;
+let holdCnt = 0;
+let pendingResolve = null;
+let aiming = null;
+let caption = '';
+let arrows = [];
+let chance = 24;
+let turnCount = 0;
+let combo = 0;
+let pulse = 0;
+let starsEarned = 0;
+let clearedCount = 0;
+let hintUsed = false;
+let puzzleMessage = '';
+const effects = [];
+const history = [];
+
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function blues() { return players.filter(p => p.team === 'blue'); }
+function reds() { return players.filter(p => p.team === 'red'); }
+function traitValue(p, key) {
+    return p && p.trait && typeof p.trait[key] === 'number' ? p.trait[key] : 1;
+}
+function traitName(p) {
+    return p && p.trait && p.trait.name !== '標準' ? p.trait.name : '';
+}
+function fieldClampT(p) {
+    p.tx = clamp(p.tx, fX0 + R, fX1 - R);
+    p.ty = clamp(p.ty, fY0 + R, fY0 + fH - R);
+}
+
+function nearestOf(arr, ref) {
+    let best = null;
+    let bd = 1e9;
+    for(const p of arr) {
+        if(p === ref) continue;
+        const d = dist(p, ref);
+        if(d < bd) {
+            bd = d;
+            best = p;
+        }
+    }
+    return best;
+}
+
+function pointSeg(px, py, ax, ay, bx, by) {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy || 1;
+    let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+    t = clamp(t, 0, 1);
+    const cx = ax + t * dx;
+    const cy = ay + t * dy;
+    return { d:Math.hypot(px - cx, py - cy), t, cx, cy };
+}
+
+function interceptor(from, to) {
+    let best = null;
+    const passBonus = from && from.team === 'blue' ? traitValue(from, 'pass') : 1;
+    const cutR = INTERCEPT_R * activeDifficulty().cutScale / Math.sqrt(passBonus);
+    let bd = cutR;
+
+    for(const e of reds()) {
+        const s = pointSeg(e.x, e.y, from.x, from.y, to.x, to.y);
+        if(s.t > 0.08 && s.t < 0.95 && s.d < bd) {
+            bd = s.d;
+            best = e;
+        }
+    }
+    return best;
+}
+
+function stepTarget(p, gx, gy, step) {
+    if(!isFinite(gx) || !isFinite(gy)) {
+        p.tx = p.x;
+        p.ty = p.y;
+        return;
+    }
+    const dx = gx - p.x;
+    const dy = gy - p.y;
+    const d = Math.hypot(dx, dy);
+    if(d < 1e-3) {
+        p.tx = p.x;
+        p.ty = p.y;
+        return;
+    }
+    const m = Math.min(step, d);
+    p.tx = p.x + dx / d * m;
+    p.ty = p.y + dy / d * m;
+    fieldClampT(p);
+}
+
+function basePoint(p) { return frac(p.baseFx, p.baseFy); }
+
+function applyOffballTrait(p, anchor, targetX, targetY, context) {
+    if(!p.trait || !anchor) return { x:targetX, y:targetY, note:'' };
+
+    const name = p.trait.name;
+    const centerX = fX0 + fW / 2;
+    const base = basePoint(p);
+    const naturalSide = p.baseFx < 0.5 ? -1 : 1;
+    const freeSide = anchor.x < centerX ? 1 : -1;
+    const currentSide = p.x < anchor.x ? -1 : 1;
+    let x = targetX;
+    let y = targetY;
+    let note = '';
+
+    if(name === '快速') {
+        const side = Math.abs(p.x - anchor.x) > fW * 0.18 ? currentSide : naturalSide;
+        x = clamp(centerX + side * fW * 0.33, fX0 + R, fX1 - R);
+        y = clamp(Math.min(p.y - STEP * 0.18, anchor.y - STEP * (0.70 + context.push * 0.35)), fY0 + R, fY0 + fH - R);
+        note = '快速が外を走る';
+    }
+    else if(name === 'スプリント') {
+        const side = naturalSide;
+        x = clamp(centerX + side * fW * 0.17, fX0 + R, fX1 - R);
+        y = clamp(Math.min(p.y - STEP * 0.22, anchor.y - STEP * (1.25 + context.push * 0.55)), fY0 + R, fY0 + fH - R);
+        note = '裏へスプリント';
+    }
+    else if(name === '司令塔') {
+        x = clamp(centerX + freeSide * fW * 0.16, fX0 + R, fX1 - R);
+        y = clamp(Math.max(anchor.y + STEP * 0.78, base.y - STEP * 0.12), fY0 + R, fY0 + fH - R);
+        note = '司令塔が受け直す';
+    }
+    else if(name === 'ドリブル') {
+        const side = Math.abs(p.x - anchor.x) > STEP ? currentSide : freeSide;
+        x = clamp(anchor.x + side * STEP * 1.75, fX0 + R, fX1 - R);
+        y = clamp(anchor.y - STEP * 0.12, fY0 + R, fY0 + fH - R);
+        note = '斜めで受けて運ぶ';
+    }
+    else if(name === 'フィニッシュ') {
+        const side = naturalSide;
+        x = clamp(centerX + side * fW * 0.08, fX0 + R, fX1 - R);
+        y = clamp(Math.min(p.y - STEP * 0.14, anchor.y - STEP * (1.05 + context.push * 0.45), fY0 + fH * 0.24), fY0 + R, fY0 + fH - R);
+        note = 'ゴール前へ入る';
+    }
+    else if(name === '展開') {
+        const side = naturalSide;
+        x = clamp(centerX + side * fW * 0.37, fX0 + R, fX1 - R);
+        y = clamp(anchor.y + STEP * 0.18, fY0 + R, fY0 + fH - R);
+        note = '横に開く';
+    }
+    else if(name === '安定') {
+        const side = naturalSide;
+        x = clamp(centerX + side * fW * 0.24, fX0 + R, fX1 - R);
+        y = clamp(Math.max(anchor.y + STEP * 1.18, base.y - STEP * 0.10), fY0 + R, fY0 + fH - R);
+        note = '後ろで逃げ道';
+    }
+
+    const spaced = keepAwayFromAnchor(anchor, x, y, R * 4.9);
+    return { x:spaced.x, y:spaced.y, note };
+}
+
+function keepAwayFromAnchor(anchor, x, y, minDist) {
+    const dx = x - anchor.x;
+    const dy = y - anchor.y;
+    let d = Math.hypot(dx, dy);
+    if(d >= minDist) return { x, y };
+    if(d < 1e-3) {
+        const side = anchor.x < fX0 + fW / 2 ? 1 : -1;
+        return {
+            x: clamp(anchor.x + side * minDist, fX0 + R, fX1 - R),
+            y: clamp(anchor.y + minDist * 0.25, fY0 + R, fY0 + fH - R)
+        };
+    }
+    const nx = dx / d;
+    const ny = dy / d;
+    return {
+        x: clamp(anchor.x + nx * minDist, fX0 + R, fX1 - R),
+        y: clamp(anchor.y + ny * minDist, fY0 + R, fY0 + fH - R)
+    };
+}
+
+function showOffballNotes(anchor, limit) {
+    let shown = 0;
+    for(const p of blues()) {
+        if(p === anchor || !p.trait) continue;
+        if(Math.hypot(p.tx - p.x, p.ty - p.y) < STEP * 0.18) continue;
+        const note = traitMoveLabel(p);
+        if(!note) continue;
+        addTextEffect(note, p.tx, p.ty - R * 1.8, '#d7ecff');
+        shown++;
+        if(shown >= (limit || 2)) break;
+    }
+}
+
+function traitMoveLabel(p) {
+    if(!p.trait) return '';
+    if(p.trait.name === '快速') return '外を走る';
+    if(p.trait.name === 'スプリント') return '裏へ';
+    if(p.trait.name === '司令塔') return '受け直し';
+    if(p.trait.name === 'ドリブル') return '斜めで受ける';
+    if(p.trait.name === 'フィニッシュ') return 'ゴール前へ';
+    if(p.trait.name === '展開') return '開く';
+    if(p.trait.name === '安定') return '逃げ道';
+    return '';
+}
+
+function nearestBlueTo(redP, exceptHolder) {
+    let best = null;
+    let bd = 1e9;
+    for(const b of blues()) {
+        if(b === exceptHolder) continue;
+        const d = dist(redP, b);
+        if(d < bd) {
+            bd = d;
+            best = b;
+        }
+    }
+    return best;
+}
+
+function bestLaneCutter(holder, presser) {
+    let best = null;
+    let bestScore = 1e9;
+    for(const e of reds()) {
+        if(e === presser) continue;
+        for(const t of blues()) {
+            if(t === holder) continue;
+            const forwardGain = holder.y - t.y;
+            if(forwardGain < STEP * 0.20) continue;
+            const s = pointSeg(e.x, e.y, holder.x, holder.y, t.x, t.y);
+            if(s.t <= 0.08 || s.t >= 0.95) continue;
+            const score = s.d - forwardGain * 0.08;
+            if(score < bestScore) {
+                bestScore = score;
+                best = { enemy:e, target:t, foot:s };
+            }
+        }
+    }
+    return best;
+}
+
+function moveAroundAfterDribble(holder, fromX, fromY) {
+    const dx = holder.x - fromX;
+    const dy = holder.y - fromY;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const centerX = fX0 + fW / 2;
+    const goalX = centerX;
+    const goalY = fY0;
+
+    for(const p of blues()) {
+        if(p === holder) continue;
+        const bx = holder.x - p.x;
+        const by = holder.y - p.y;
+        const dToHolder = Math.hypot(bx, by) || 1;
+        const base = basePoint(p);
+        let targetX = p.x;
+        let targetY = p.y;
+
+        if(p.role === 'DF') {
+            const side = p.baseFx < 0.5 ? -1 : 1;
+            targetX = base.x + side * fW * 0.035;
+            targetY = Math.max(holder.y + STEP * 1.35, base.y - STEP * 0.25);
+        }
+        else if(p.role === 'MF') {
+            const side = p.baseFx < 0.45 ? -1 : (p.baseFx > 0.55 ? 1 : 0);
+            if(side === 0) {
+                targetX = centerX + (holder.x < centerX ? fW * 0.10 : -fW * 0.10);
+                targetY = holder.y - STEP * 0.65;
+            }
+            else {
+                targetX = base.x + side * fW * 0.050;
+                targetY = holder.y - STEP * 0.35;
+            }
+        }
+        else if(p.role === 'FW') {
+            const side = p.baseFx < 0.5 ? -1 : 1;
+            targetX = centerX + side * fW * 0.12;
+            targetY = Math.min(holder.y - STEP * 1.15, base.y - STEP * 0.15);
+        }
+
+        if(dToHolder < R * 4.2) {
+            targetX = p.x + (-bx / dToHolder) * STEP * 0.75;
+            targetY = p.y + (-by / dToHolder) * STEP * 0.75;
+        }
+
+        const shaped = applyOffballTrait(p, holder, targetX, targetY, { type:'dribble', push:0.55 });
+        targetX = shaped.x;
+        targetY = shaped.y;
+
+        targetX += ux * STEP * 0.18;
+        targetY += uy * STEP * 0.18;
+        const spaced = keepAwayFromAnchor(holder, targetX, targetY, R * 4.9);
+        targetX = spaced.x;
+        targetY = spaced.y;
+        stepTarget(p, targetX, targetY, STEP * 0.44 * traitValue(p, 'speed'));
+    }
+
+    const presser = nearestOf(reds(), holder);
+    const lane = bestLaneCutter(holder, presser);
+    const cutter = lane ? lane.enemy : null;
+
+    for(const e of reds()) {
+        if(e === presser) {
+            stepTarget(e, holder.x, holder.y, AI_STEP);
+        }
+        else if(cutter && e === cutter) {
+            stepTarget(e, lane.foot.cx, lane.foot.cy, AI_STEP * 0.90);
+        }
+        else {
+            const mark = nearestBlueTo(e, holder);
+            const base = basePoint(e);
+            let targetX = base.x + (holder.x - centerX) * 0.22;
+            let targetY = base.y;
+            if(mark) {
+                targetX = mark.x * 0.60 + goalX * 0.40;
+                targetY = mark.y * 0.62 + goalY * 0.38;
+            }
+            targetX = targetX * 0.72 + holder.x * 0.28;
+            targetY = targetY * 0.82 + holder.y * 0.18;
+            stepTarget(e, targetX, targetY, AI_STEP * 0.46);
+        }
+    }
+
+    return { presser, cutter };
+}
+
+function hasForwardSpace(receiver) {
+    const front = { x:receiver.x, y:receiver.y - STEP * 0.95 };
+    for(const e of reds()) {
+        if(dist(e, front) < MARK_TIGHT) return false;
+    }
+    return true;
+}
+
+function nextPassOptions(receiver) {
+    let count = 0;
+    for(const t of blues()) {
+        if(t === receiver) continue;
+        const fwd = receiver.y - t.y;
+        const nearestRed = nearestOf(reds(), t);
+        const open = nearestRed ? dist(nearestRed, t) : 999;
+        const blocked = interceptor(receiver, t);
+        if(!blocked && open > MARK_TIGHT * 0.85 && fwd > -STEP * 0.8) count++;
+    }
+    return count;
+}
+
+function moveAroundAfterPass(from, receiver) {
+    const passLen = dist(from, receiver);
+    const factor = clamp(passLen / (Math.min(fW, fH) * 0.44), 0.35, 1.25);
+    const forwardPass = from.y - receiver.y;
+    const ux = (receiver.x - from.x) / (passLen || 1);
+    const uy = (receiver.y - from.y) / (passLen || 1);
+    const centerX = fX0 + fW / 2;
+    const goalX = centerX;
+    const goalY = fY0;
+    const moved = { close:null, cover:null, support:0 };
+
+    for(const p of blues()) {
+        if(p === receiver) continue;
+
+        const base = basePoint(p);
+        const awayX = p.x - receiver.x;
+        const awayY = p.y - receiver.y;
+        const dToReceiver = Math.hypot(awayX, awayY) || 1;
+        let targetX = p.x + ux * STEP * 0.10 * factor;
+        let targetY = p.y + uy * STEP * 0.10 * factor;
+
+        if(p === from) {
+            targetX = receiver.x - ux * STEP * (1.15 + factor * 0.25);
+            targetY = receiver.y - uy * STEP * (1.15 + factor * 0.25);
+        }
+        else if(p.role === 'DF') {
+            const side = p.baseFx < 0.5 ? -1 : 1;
+            targetX = base.x + side * fW * 0.025;
+            targetY = Math.max(receiver.y + STEP * (1.25 + factor * 0.35), base.y - STEP * 0.15);
+        }
+        else if(p.role === 'MF') {
+            const side = p.x < receiver.x ? -1 : 1;
+            targetX = receiver.x + side * STEP * (1.25 + factor * 0.45);
+            targetY = receiver.y + (forwardPass > 0 ? STEP * 0.18 : -STEP * 0.25);
+        }
+        else if(p.role === 'FW') {
+            const side = p.baseFx < 0.5 ? -1 : 1;
+            targetX = centerX + side * fW * (0.10 + factor * 0.025);
+            targetY = Math.min(receiver.y - STEP * (0.75 + factor * 0.55), base.y - STEP * 0.10);
+        }
+
+        if(dToReceiver < R * 4.0) {
+            targetX += awayX / dToReceiver * STEP * 0.58;
+            targetY += awayY / dToReceiver * STEP * 0.58;
+        }
+
+        const shaped = applyOffballTrait(p, receiver, targetX, targetY, { type:'pass', push:factor });
+        targetX = shaped.x;
+        targetY = shaped.y;
+
+        stepTarget(p, targetX, targetY, STEP * (0.26 + factor * 0.22) * traitValue(p, 'speed'));
+        moved.support++;
+    }
+
+    const close = nearestOf(reds(), receiver);
+    moved.close = close;
+    let bestCover = null;
+    let bestCoverScore = 1e9;
+
+    for(const e of reds()) {
+        if(e === close) continue;
+        const s = pointSeg(e.x, e.y, receiver.x, receiver.y, goalX, goalY);
+        const score = s.d + Math.abs(s.t - 0.45) * R * 1.4;
+        if(score < bestCoverScore) {
+            bestCoverScore = score;
+            bestCover = { enemy:e, foot:s };
+        }
+    }
+    moved.cover = bestCover ? bestCover.enemy : null;
+
+    for(const e of reds()) {
+        if(e === close) {
+            stepTarget(e, receiver.x, receiver.y, AI_STEP * (0.42 + factor * 0.38));
+        }
+        else if(bestCover && e === bestCover.enemy) {
+            stepTarget(e, bestCover.foot.cx, bestCover.foot.cy, AI_STEP * (0.32 + factor * 0.34));
+        }
+        else {
+            const mark = nearestBlueTo(e, receiver);
+            const base = basePoint(e);
+            let targetX = base.x + (receiver.x - centerX) * (0.14 + factor * 0.10);
+            let targetY = base.y;
+
+            if(mark) {
+                targetX = mark.x * 0.55 + goalX * 0.45;
+                targetY = mark.y * 0.58 + goalY * 0.42;
+            }
+
+            targetX = targetX * 0.72 + receiver.x * 0.28;
+            targetY = targetY * 0.84 + receiver.y * 0.16;
+            stepTarget(e, targetX, targetY, AI_STEP * (0.22 + factor * 0.22));
+        }
+    }
+
+    return moved;
+}
+
+function currentLevelName() {
+    const setup = levelSetup();
+    return 'Lv.' + level + ' ' + setup.name.replace(/^レベル\d+:\s*/, '');
+}
+
+function starRating() {
+    let s = 1;
+    if(chance >= 64) s++;
+    if(chance >= 78 && !hintUsed) s++;
+    return s;
+}
+
+function starText(n) {
+    return '★'.repeat(n) + '☆'.repeat(3 - n);
+}
+
+function currentMission() {
+    if(level <= 1) return 'ミッション: 前を向けるパスからシュートへ';
+    if(level === 2) return 'ミッション: 中央を閉じる相手をずらす';
+    if(level === 3) return 'ミッション: サイドから斜め前を使う';
+    if(level === 4) return 'ミッション: FWに良い形で届ける';
+    return 'ミッション: コースを消される前に仕留める';
+}
+
+function coachHint() {
+    const holder = ball.holder;
+    if(!holder || phase !== 'you') return 'まず「1手戻す」か「次の課題」で盤面を整えよう。';
+    const best = bestOption(holder);
+    if(canShoot()) return '今はシュートを考えられる形。コースに赤が入っていないか見てから打とう。';
+    if(best) {
+        const fwd = holder.y - best.y;
+        const angle = Math.abs(holder.x - best.x);
+        if(fwd > STEP * 0.6 && angle > R * 2) return best.num + '番への斜め前が良さそう。受けた後に前を向けるか見よう。';
+        if(fwd > STEP * 0.6) return best.num + '番なら前進できそう。相手が届く距離か確認しよう。';
+        return best.num + '番で作り直すと、次のパスが見えそう。';
+    }
+    return '近くの相手に囲まれそう。小さくドリブルして相手をずらそう。';
+}
+
+function laneRead(from, to) {
+    const cut = interceptor(from, to);
+    const nearest = nearestOf(reds(), to);
+    const pressure = nearest ? dist(nearest, to) : 999;
+    const fwd = from.y - to.y;
+    const nexts = nextPassOptions(to);
+    let label = '通る';
+    let color = '#91ffb4';
+    let detail = '受けた後も考えよう';
+
+    if(cut) {
+        label = '危険';
+        color = '#ff6b6b';
+        detail = cut.num + '番が届きそう';
+    }
+    else if(pressure < MARK_TIGHT * 0.92) {
+        label = '注意';
+        color = '#ffd23f';
+        detail = '受け手に相手が近い';
+    }
+    else if(fwd > STEP * 0.6 && nexts >= 1) {
+        label = '好機';
+        color = '#8bd3ff';
+        detail = '前進して次もある';
+    }
+    else if(fwd > STEP * 0.6) {
+        label = '前進';
+        color = '#bfffd0';
+        detail = '受けた後の次を探そう';
+    }
+    else if(nexts === 0) {
+        label = '安全';
+        color = '#ffffff';
+        detail = '次の選択肢は少なめ';
+    }
+
+    return { label, color, detail, cut, pressure, nexts };
+}
+
+function showHint() {
+    if(busy) return;
+    const wasUsed = hintUsed;
+    hintUsed = true;
+    const holder = ball.holder;
+    const text = coachHint();
+    if(holder && phase === 'you') {
+        if(canShoot()) {
+            addLineEffect(holder, { x:fX0 + fW / 2, y:fY0 }, '#ffd23f');
+            addTextEffect('打てる？', holder.x, holder.y - R * 2.7, '#ffd23f');
+        }
+        else {
+            const best = bestOption(holder);
+            if(best) {
+                addLineEffect(holder, best, '#bfffd0');
+                addSpaceEffect(best, '候補');
+            }
+        }
+    }
+    if(!wasUsed) changeChance(-4, 'ヒント', fX0 + fW / 2, fY0 + fH * 0.26);
+    restState();
+    setFeedback('', '<b>コーチヒント:</b> ' + text + '<br><span class="hint">ヒント使用は星3条件に影響します。何度見ても追加ペナルティはありません。</span>');
+}
+
+function addEffect(e) {
+    e.life = e.life || 42;
+    e.maxLife = e.life;
+    effects.push(e);
+    if(effects.length > 18) effects.shift();
+}
+
+function addTextEffect(text, x, y, color) {
+    addEffect({ type:'text', text, x, y, color:color || '#ffd23f', life:46 });
+}
+
+function addLineEffect(from, to, color) {
+    addEffect({ type:'line', x1:from.x, y1:from.y, x2:to.x, y2:to.y, color:color || '#fff3a3', life:34 });
+}
+
+function addSpaceEffect(p, label) {
+    addEffect({ type:'space', x:p.x, y:p.y - STEP * 0.55, r:STEP * 0.72, label:label || 'チャンス', life:48 });
+}
+
+function changeChance(delta, reason, x, y) {
+    const before = chance;
+    chance = clamp(chance + delta, 0, 100);
+    pulse = Math.max(pulse, Math.min(1, Math.abs(chance - before) / 18));
+    if(reason) addTextEffect(reason, x || (fX0 + fW / 2), y || (fY0 + fH * 0.22), delta >= 0 ? '#ffd23f' : '#ffd0d0');
+}
+
+function rewardPass(from, to, evalObj) {
+    const fwd = from.y - to.y;
+    const diagonal = Math.abs(to.x - from.x) > R * 2.0 && fwd > STEP * 0.45;
+    const nextOptions = nextPassOptions(to);
+    let gain = 4;
+    let text = 'つないだ';
+
+    if(evalObj.mark === '◎') {
+        gain = 22;
+        text = 'ナイス判断!';
+        combo++;
+        addLineEffect(from, to, '#fff3a3');
+        addSpaceEffect(to, '前を向ける');
+    }
+    else if(fwd > STEP * 0.6 && diagonal) {
+        gain = 15;
+        text = '相手を外した!';
+        combo++;
+        addLineEffect(from, to, '#bfffd0');
+        addSpaceEffect(to, 'いい角度');
+    }
+    else if(fwd > STEP * 0.6) {
+        gain = 10;
+        text = '前進!';
+        combo++;
+        addLineEffect(from, to, '#d7ecff');
+    }
+    else if(nextOptions >= 1) {
+        gain = 6;
+        text = '作り直しOK';
+        combo = Math.max(0, combo - 1);
+    }
+    else {
+        gain = 1;
+        text = '次を探そう';
+        combo = 0;
+    }
+
+    if(combo >= 2) {
+        gain += 4;
+        text += ' 連続!';
+    }
+    if(traitValue(from, 'pass') > 1.10 && gain >= 6) {
+        gain += 3;
+        text += ' パス得意!';
+    }
+    if(canShoot()) {
+        gain += 8;
+        text = 'シュートチャンス!';
+        addSpaceEffect(to, '打てる');
+    }
+    turnCount++;
+    changeChance(gain, text, to.x, to.y - R * 2.5);
+}
+
+function rewardDribble(holder) {
+    turnCount++;
+    const e = nearestOf(reds(), holder);
+    const safe = !e || dist(e, holder) > MARK_TIGHT;
+    if(safe) {
+        const bonus = traitValue(holder, 'dribble') > 1.08 ? 3 : 0;
+        changeChance(4 + bonus, bonus ? '得意な運び!' : '運べた', holder.x, holder.y - R * 2.4);
+    }
+    else {
+        changeChance(-3, '寄せられた', holder.x, holder.y - R * 2.4);
+    }
+    combo = 0;
+}
+
+function rewardLoss(x, y) {
+    combo = 0;
+    changeChance(-16, '奪われた', x, y - R * 2);
+}
+
+function checkMoveLimit() {
+    return;
+}
+
+function canShoot() {
+    if(phase !== 'you' || busy || !ball.holder) return false;
+    const h = ball.holder;
+    if(h.team !== 'blue') return false;
+    const centerX = fX0 + fW / 2;
+    const inFinalZone = h.y < fY0 + fH * 0.29;
+    const inGoalLane = Math.abs(h.x - centerX) < fW * 0.34;
+    const striker = h.role === 'FW';
+    const builtChance = chance >= 86 && h.y < fY0 + fH * 0.42 && inGoalLane;
+    return (inFinalZone && inGoalLane && (striker || h.y < fY0 + fH * 0.22)) || builtChance;
+}
+
+function shotBlocker(shooter) {
+    const goal = { x:fX0 + fW / 2, y:fY0 };
+    let best = null;
+    let bd = R * 2.2 / Math.sqrt(traitValue(shooter, 'finish'));
+    for(const e of reds()) {
+        const s = pointSeg(e.x, e.y, shooter.x, shooter.y, goal.x, goal.y);
+        if(s.t > 0.05 && s.t < 1 && s.d < bd) {
+            bd = s.d;
+            best = e;
+        }
+    }
+    return best;
+}
+
+function doShoot() {
+    if(!canShoot()) return;
+    snapshot();
+    turnCount++;
+    const shooter = ball.holder;
+    const blocker = shotBlocker(shooter);
+    const nearest = nearestOf(reds(), shooter);
+    const pressure = nearest ? dist(nearest, shooter) : 999;
+    const finish = traitValue(shooter, 'finish');
+    const goodAngle = Math.abs(shooter.x - (fX0 + fW / 2)) < fW * (0.22 + (finish - 1) * 0.08);
+    const chanceShot = chance >= 92;
+    const clearShot = !blocker && (pressure > MARK_TIGHT * 0.82 / Math.sqrt(finish) || chanceShot) && (goodAngle || chanceShot);
+
+    runBeats([
+        {
+            caption: shooter.num + '番がシュート!',
+            prep:() => {
+                ballFlight = true;
+                ball.tx = fX0 + fW / 2;
+                ball.ty = fY0 + R * 0.5;
+                arrows = [{ x1:shooter.x, y1:shooter.y, x2:ball.tx, y2:ball.ty, color:'#fff3a3' }];
+            },
+            after:() => {
+                if(clearShot) {
+                    chance = 100;
+                    addLineEffect(shooter, { x:fX0 + fW / 2, y:fY0 }, '#ffd23f');
+                    goalScored(shooter);
+                }
+                else {
+                    const stop = blocker || nearest;
+                    ball.holder = null;
+                    if(stop) {
+                        ball.x = ball.tx = stop.x;
+                        ball.y = ball.ty = stop.y;
+                    }
+                    phase = 'lost';
+                    aiming = null;
+                    restState();
+                    rewardLoss(stop ? stop.x : shooter.x, stop ? stop.y : shooter.y);
+                    const reason = blocker
+                        ? blocker.num + '番がシュートコースに入ってブロック。'
+                        : '近くの相手に寄せられて、弱いシュートになった。';
+                    setFeedback('△', reason + '<br><span class="hint">ゴール前でも、コース・角度・相手との距離を見てから打とう。</span>');
+                }
+            }
+        }
+    ]);
+
+    finishBeats = () => {
+        if(phase !== 'lost') restState();
+    };
+}
+
+function goalScored(shooter) {
+    goals++;
+    clearedCount++;
+    totalClears++;
+    const reward = drawGachaReward();
+    starsEarned = starRating();
+    combo = 0;
+    phase = 'clear';
+    aiming = null;
+    arrows = [];
+    ballFlight = false;
+    history.length = 0;
+    restState();
+    addTextEffect('GOAL!', fX0 + fW / 2, fY0 + fH * 0.18, '#ffd23f');
+    addTextEffect(reward.isNew ? 'NEW!' : 'BONUS', fX0 + fW / 2, fY0 + fH * 0.27, reward.isNew ? '#8bd3ff' : '#ffd23f');
+    puzzleMessage = starText(starsEarned) + ' クリア';
+    const rewardText = reward.isNew
+        ? '<br><span class="hint">ごほうびガチャ: ' + reward.title + 'が加入！ 次の課題から使えます。</span>'
+        : '<br><span class="hint">ごほうびガチャ: ' + reward.title + 'は重複。ボーナスで次回以降のチャンス初期値が少し上がります。</span>';
+    setFeedback('◎', 'クリア！ ' + shooter.num + '番が良い位置で前を向けたね。<br><span class="hint">' + starText(starsEarned) + ' / 手数 ' + turnCount + ' / チャンス ' + Math.round(chance) + '%。総クリア ' + totalClears + '。</span>' + rewardText);
+}
+
+function nextLevel() {
+    if(phase !== 'clear') return;
+    level++;
+    turnCount = 0;
+    combo = 0;
+    starsEarned = 0;
+    hintUsed = false;
+    puzzleMessage = '';
+    reset(24 + Math.min(12, level * 2) + Math.min(10, duplicateBonus * 2));
+}
+
+function retryLevel() {
+    turnCount = 0;
+    combo = 0;
+    hintUsed = false;
+    puzzleMessage = '';
+    reset(24);
+}
+
+function snapshot() {
+    history.push({
+        players: players.map(p => ({ x:p.x, y:p.y })),
+        holder: players.indexOf(ball.holder),
+        chance,
+        turnCount,
+        combo
+    });
+    if(history.length > 40) history.shift();
+}
+
+function undo() {
+    if(busy) return;
+    const s = history.pop();
+    if(!s) {
+        setFeedback('', 'これ以上は戻せません。');
+        return;
+    }
+    s.players.forEach((q, i) => {
+        players[i].x = players[i].tx = q.x;
+        players[i].y = players[i].ty = q.y;
+    });
+    ball.holder = s.holder >= 0 ? players[s.holder] : null;
+    chance = typeof s.chance === 'number' ? s.chance : chance;
+    turnCount = typeof s.turnCount === 'number' ? s.turnCount : turnCount;
+    combo = typeof s.combo === 'number' ? s.combo : combo;
+    if(ball.holder) {
+        ball.x = ball.tx = ball.holder.x;
+        ball.y = ball.ty = ball.holder.y;
+    }
+    phase = 'you';
+    aiming = null;
+    arrows = [];
+    effects.length = 0;
+    ballFlight = false;
+    busy = false;
+    restState();
+    setFeedback('', '1手戻しました。別のパスやドリブルを試してみよう。');
+}
+
+function reset(startChance) {
+    buildPlayers();
+    ball.holder = blues().find(p => p.num === 4);
+    ball.x = ball.tx = ball.holder.x;
+    ball.y = ball.ty = ball.holder.y;
+    phase = 'you';
+    aiming = null;
+    arrows = [];
+    busy = false;
+    ballFlight = false;
+    chance = typeof startChance === 'number' ? startChance : 24;
+    turnCount = 0;
+    combo = 0;
+    hintUsed = false;
+    puzzleMessage = '';
+    effects.length = 0;
+    history.length = 0;
+    restState();
+    setFeedback('', '<b>' + currentLevelName() + '</b> 青4番からスタート。味方をタップでパス構え、空いた場所をタップで1歩ドリブル。ゴール前で良い形になったらシュートできます。');
+}
+
+function runBeats(beats) {
+    let i = 0;
+    (function next() {
+        if(i >= beats.length) {
+            ballFlight = false;
+            finishBeats();
+            return;
+        }
+        const s = beats[i++];
+        caption = s.caption || '';
+        arrows = [];
+        if(s.prep) s.prep();
+        busy = true;
+        holdCnt = 0;
+        pendingResolve = () => {
+            if(s.after) s.after();
+            next();
+        };
+    })();
+}
+
+let finishBeats = () => {};
+
+function doDribble(px, py) {
+    if(busy || phase !== 'you' || !ball.holder) return;
+    snapshot();
+
+    const holder = ball.holder;
+    let fromX = holder.x;
+    let fromY = holder.y;
+
+    runBeats([
+        {
+            caption:'あなた: ドリブルで1歩前へ',
+            prep:() => {
+                fromX = holder.x;
+                fromY = holder.y;
+                const ox = holder.x;
+                const oy = holder.y;
+                stepTarget(holder, px, py, STEP * traitValue(holder, 'dribble'));
+                arrows = [{ x1:ox, y1:oy, x2:holder.tx, y2:holder.ty, color:'#bcd4ff' }];
+                if(traitValue(holder, 'dribble') > 1.08) {
+                    addTextEffect('ドリブル+', holder.x, holder.y - R * 2.4, '#8bd3ff');
+                }
+            }
+        },
+        {
+            caption:'',
+            prep:() => {
+                const moved = moveAroundAfterDribble(holder, fromX, fromY);
+                const nearest = moved.presser;
+                const cutter = moved.cutter;
+                showOffballNotes(holder, 2);
+                if(nearest) {
+                    arrows = [{ x1:nearest.x, y1:nearest.y, x2:nearest.tx, y2:nearest.ty, color:'#ffd0d0' }];
+                    if(cutter) {
+                        arrows.push({ x1:cutter.x, y1:cutter.y, x2:cutter.tx, y2:cutter.ty, color:'#ffe0a3' });
+                        caption = nearest.num + '番が寄せ、' + cutter.num + '番がコースを切る';
+                    }
+                    else {
+                        caption = '相手がスライドし、' + nearest.num + '番が寄せてきた';
+                    }
+                }
+            },
+            after:() => {
+                const e = nearestOf(reds(), holder);
+                if(e && dist(e, holder) < STEAL_R * traitValue(holder, 'keep')) {
+                    lose(e, e.num + '番に詰められてロスト。<span class="hint">味方も動くので、囲まれる前に空いた選手を探そう。</span>');
+                }
+            }
+        }
+    ]);
+
+    finishBeats = () => {
+        if(phase !== 'lost') {
+            phase = 'you';
+            restState();
+            rewardDribble(holder);
+            setFeedback('', '周りの選手も動きました。相手のずれを見て、次はどこへ出す？');
+            checkMoveLimit();
+        }
+    };
+}
+
+function startAim(ally) {
+    if(busy || !ball.holder || ally === ball.holder || phase === 'lost') return;
+
+    if(phase === 'you') {
+        snapshot();
+        aiming = ally;
+        const holder = ball.holder;
+
+        runBeats([
+            {
+                caption:'あなた: ' + ally.num + '番へパスの構え',
+                prep:() => { arrows = []; }
+            },
+            {
+                caption:'',
+                prep:() => {
+                    let cutter = null;
+                    let bd = 1e9;
+                    for(const e of reds()) {
+                        const s = pointSeg(e.x, e.y, holder.x, holder.y, ally.x, ally.y);
+                        if(s.d < bd) {
+                            bd = s.d;
+                            cutter = e;
+                        }
+                    }
+
+                    if(cutter && bd < INTERCEPT_R * activeDifficulty().farLane) {
+                        const s = pointSeg(cutter.x, cutter.y, holder.x, holder.y, ally.x, ally.y);
+                        const ox = cutter.x;
+                        const oy = cutter.y;
+                        stepTarget(cutter, s.cx, s.cy, PASS_REACT_STEP);
+                        arrows = [{ x1:ox, y1:oy, x2:cutter.tx, y2:cutter.ty, color:'#ffd0d0' }];
+                        caption = '相手' + cutter.num + '番がコースを切りに来た';
+                    }
+                    else {
+                        caption = 'このコースには届きにくい';
+                    }
+                }
+            }
+        ]);
+
+        finishBeats = () => {
+            phase = 'ask';
+            restState();
+        };
+    }
+    else if(phase === 'ask') {
+        aiming = ally;
+        restState();
+        setFeedback('', '狙いを' + ally.num + '番に変更。コースは通っているかな？');
+    }
+}
+
+function cancelAim() {
+    if(phase !== 'ask') return;
+    aiming = null;
+    phase = 'you';
+    restState();
+    setFeedback('', 'パスをやめました。ドリブルや別の味方も考えてみよう。');
+}
+
+function releasePass() {
+    if(phase !== 'ask' || !aiming || busy) return;
+    const from = ball.holder;
+    const to = aiming;
+    const intc = interceptor(from, to);
+    let passMove = null;
+    passbar.style.display = 'none';
+
+    runBeats([
+        {
+            caption: intc ? 'パス...' : 'パス!',
+            prep:() => {
+                ballFlight = true;
+                const dest = intc ? intc : to;
+                ball.tx = dest.x;
+                ball.ty = dest.y;
+                arrows = [];
+            },
+            after:() => {
+                if(intc) {
+                    lose(intc, evalIntercept(to, intc));
+                }
+                else {
+                    ball.holder = to;
+                    ball.x = ball.tx = to.x;
+                    ball.y = ball.ty = to.y;
+                    phase = 'you';
+                    aiming = null;
+                    if(traitValue(from, 'pass') > 1.10) {
+                        addTextEffect('パス+', from.x, from.y - R * 2.4, '#bfffd0');
+                    }
+                }
+            }
+        },
+        {
+            caption:'',
+            prep:() => {
+                if(phase === 'lost') return;
+
+                const passLen = dist(from, to);
+                const longPass = passLen > Math.min(fW, fH) * 0.34;
+                passMove = moveAroundAfterPass(from, to);
+                showOffballNotes(to, 2);
+                arrows = [];
+
+                if(from && from.tx !== undefined) {
+                    arrows.push({ x1:from.x, y1:from.y, x2:from.tx, y2:from.ty, color:'#bcd4ff' });
+                }
+                if(passMove.close) {
+                    arrows.push({ x1:passMove.close.x, y1:passMove.close.y, x2:passMove.close.tx, y2:passMove.close.ty, color:'#ffd0d0' });
+                }
+                if(passMove.cover && passMove.cover !== passMove.close) {
+                    arrows.push({ x1:passMove.cover.x, y1:passMove.cover.y, x2:passMove.cover.tx, y2:passMove.cover.ty, color:'#ffe0a3' });
+                }
+
+                caption = longPass
+                    ? '長いパスなので、周りも大きく動く'
+                    : '短いパスなので、周りは少し動く';
+            },
+            after:() => {
+                if(phase !== 'lost') {
+                    const evaluation = evalReceived(from, to);
+                    rewardPass(from, to, evaluation);
+                    setFeedback2(evaluation, from, to);
+                    checkMoveLimit();
+                }
+            }
+        }
+    ]);
+
+    finishBeats = () => {
+        if(phase !== 'lost') restState();
+    };
+}
+
+function lose(redP, msg) {
+    ball.holder = null;
+    ball.x = ball.tx = redP.x;
+    ball.y = ball.ty = redP.y;
+    phase = 'lost';
+    aiming = null;
+    restState();
+    rewardLoss(redP.x, redP.y);
+    setFeedback('×', msg + '<br><span class="hint">「1手戻す」で直前に戻って、別の判断を試せます。</span>');
+}
+
+function bestOption(from) {
+    let best = null;
+    let bs = -1e9;
+    for(const t of blues()) {
+        if(t === from) continue;
+        const blocked = interceptor(from, t) ? -1000 : 0;
+        const nearestRed = nearestOf(reds(), t);
+        const open = nearestRed ? dist(nearestRed, t) : 999;
+        const fwd = from.y - t.y;
+        const sc = blocked + open * 1.0 + fwd * 0.8;
+        if(sc > bs) {
+            bs = sc;
+            best = t;
+        }
+    }
+    return best;
+}
+
+function evalIntercept(to, intc) {
+    const best = bestOption(ball.holder);
+    let s = intc.num + '番にカット。そのコースは消されていたね。';
+    if(best && best !== to && !interceptor(ball.holder, best)) {
+        s += '<span class="hint"> ' + best.num + '番へのコースは空いていたかも。</span>';
+    }
+    return s;
+}
+
+function evalReceived(from, to) {
+    const ne = nearestOf(reds(), to);
+    const pressure = ne ? dist(ne, to) : 999;
+    const fwd = from.y - to.y;
+    const tight = pressure < MARK_TIGHT;
+    const forward = fwd > STEP * 0.6;
+    const best = bestOption(from);
+    const isBest = to === best;
+    const forwardSpace = hasForwardSpace(to);
+    const nextOptions = nextPassOptions(to);
+    const diagonal = Math.abs(to.x - from.x) > R * 2.0 && forward;
+    const longPass = dist(from, to) > Math.min(fW, fH) * 0.42;
+
+    if(tight) {
+        let s = '受け手の' + to.num + '番に相手が密着。通っても、受けた直後が苦しい。';
+        if(best && best !== to) {
+            s += '<span class="hint"> ' + best.num + '番の方が余裕を持って受けられたよ。</span>';
+        }
+        return { mark:'△', text:s };
+    }
+
+    if(longPass && !isBest) {
+        let s = '距離の長いパス。通ったけど、相手に読まれやすい選択。';
+        if(best && best !== to) {
+            s += '<span class="hint"> 近くで前を向ける' + best.num + '番も確認しよう。</span>';
+        }
+        return { mark:'○', text:s };
+    }
+
+    if(forward && isBest && forwardSpace && nextOptions >= 1) {
+        return {
+            mark:'◎',
+            text:'ナイス判断！ ' + to.num + '番が前を向けて、次のプレーにもつながる良いパス。'
+        };
+    }
+
+    if(forward && diagonal && forwardSpace) {
+        let s = 'いい斜め前のパス。相手の間を使えている。';
+        if(nextOptions === 0) {
+            s += '<span class="hint"> 受けた後の次の味方も探せるとさらに良い。</span>';
+        }
+        else if(best && best !== to) {
+            s += '<span class="hint"> ' + best.num + '番も良い選択肢だったよ。</span>';
+        }
+        return { mark:'○', text:s };
+    }
+
+    if(forward) {
+        let s = 'いいパス。前進できた。';
+        if(!forwardSpace) {
+            s += '<span class="hint"> ただし受けた後に前を向きにくいので、次は広い場所も見よう。</span>';
+        }
+        else if(best && best !== to) {
+            s += '<span class="hint"> ' + best.num + '番ならもっと前進できたかも。</span>';
+        }
+        else if(nextOptions === 0) {
+            s += '<span class="hint"> 次のパス先が少ないので、サポートを待つ判断もあり。</span>';
+        }
+        return { mark:'○', text:s };
+    }
+
+    let s = '安全に' + to.num + '番へ。';
+    if(best && best !== to && (from.y - best.y) > STEP * 0.6 && !interceptor(from, best)) {
+        s += '<span class="hint"> でも前に' + best.num + '番が空いていたよ。まず前を見よう。</span>';
+    }
+    else if(forwardSpace && nextOptions >= 1) {
+        s += '<span class="hint"> 前がない場面では、つないで作り直すのも正解。</span>';
+    }
+    else {
+        s += '<span class="hint"> 安全だけど次が少ない。受けた後に困らない場所を探そう。</span>';
+    }
+    return { mark:'○', text:s };
+}
+
+function restState() {
+    passbar.style.display = phase === 'ask' ? 'flex' : 'none';
+    shootbar.style.display = canShoot() ? 'flex' : 'none';
+    clearbar.style.display = phase === 'clear' ? 'flex' : 'none';
+    statusEl.className = ({you:'you', ask:'ask', lost:'lost', clear:'clear'})[phase] || 'you';
+    if(phase === 'you') {
+        const holderTrait = ball.holder && ball.holder.trait ? ' / 特徴: ' + ball.holder.trait.name + ' - ' + ball.holder.trait.desc : '';
+        statusEl.innerHTML = currentLevelName() + ' / 青' + (ball.holder ? ball.holder.num : '') + '番<small>★条件: 高いチャンス・良い判断・ヒントなし' + holderTrait + ' / 総クリア ' + totalClears + ' / 加入 ' + unlockedSlots.length + '/' + GACHA_POOL.length + ' / 難易度: ' + activeDifficulty().label + '</small>';
+    }
+    else if(phase === 'ask') {
+        statusEl.innerHTML = (aiming ? aiming.num : '') + '番へ出す？<small>コースが通っていれば「出す」、消されていたら「やめる」</small>';
+    }
+    else if(phase === 'lost') {
+        statusEl.innerHTML = 'ボールロスト<small>「1手戻す」か「リセット」で、別の判断を試そう</small>';
+    }
+    else if(phase === 'clear') {
+        statusEl.innerHTML = '課題クリア！ ' + starText(starsEarned) + '<small>手数 ' + turnCount + ' / チャンス ' + Math.round(chance) + '% / 次の課題へ進もう</small>';
+    }
+}
+
+function setFeedback(mark, text) {
+    fb.innerHTML = (mark ? '<span class="mark">' + mark + '</span>' : '') + text;
+}
+function passReview(from, to) {
+    const lane = laneRead(from, to);
+    const fwd = from.y - to.y;
+    const angle = Math.abs(from.x - to.x);
+    const parts = [];
+    if(fwd > STEP * 0.6) parts.push('前進');
+    if(angle > R * 2.0) parts.push('角度');
+    if(lane.nexts >= 1) parts.push('次あり');
+    if(lane.pressure < MARK_TIGHT) parts.push('相手近い');
+    if(parts.length === 0) parts.push('安全');
+    return '<br><span class="hint">読みポイント: ' + parts.join(' / ') + '</span>';
+}
+function setFeedback2(o, from, to) {
+    setFeedback(o.mark, o.text + (from && to ? passReview(from, to) : ''));
+}
+function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function drawField() {
+    ctx.fillStyle = getCSS('--pitch');
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    const n = 8;
+    const sh = fH / n;
+    for(let i = 0; i < n; i += 2) {
+        ctx.fillRect(fX0, fY0 + i * sh, fW, sh);
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(fX0, fY0, fW, fH);
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.fillRect(fX0 + fW * 0.36, fY0 - 4, fW * 0.28, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.86)';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('GOAL', fX0 + fW / 2, fY0 + 31);
+    ctx.beginPath();
+    ctx.moveTo(fX0, fY0 + fH / 2);
+    ctx.lineTo(fX1, fY0 + fH / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(fX0 + fW / 2, fY0 + fH / 2, Math.min(fW, fH) * 0.11, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('▲ 青が攻める方向', fX0 + fW / 2, fY0 + 15);
+
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = getCSS('--blue');
+    ctx.beginPath();
+    ctx.arc(fX0 + 12, fY0 + fH - 14, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText('味方', fX0 + 22, fY0 + fH - 10);
+    ctx.fillStyle = getCSS('--red');
+    ctx.beginPath();
+    ctx.arc(fX0 + 78, fY0 + fH - 14, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText('相手', fX0 + 88, fY0 + fH - 10);
+}
+
+function drawArrow(a) {
+    ctx.save();
+    ctx.strokeStyle = a.color;
+    ctx.fillStyle = a.color;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(a.x1, a.y1);
+    ctx.lineTo(a.x2, a.y2);
+    ctx.stroke();
+    const ang = Math.atan2(a.y2 - a.y1, a.x2 - a.x1);
+    const s = 10;
+    ctx.beginPath();
+    ctx.moveTo(a.x2, a.y2);
+    ctx.lineTo(a.x2 - s * Math.cos(ang - 0.4), a.y2 - s * Math.sin(ang - 0.4));
+    ctx.lineTo(a.x2 - s * Math.cos(ang + 0.4), a.y2 - s * Math.sin(ang + 0.4));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawAim() {
+    if(phase !== 'ask' || !aiming || !ball.holder) return;
+    const a = ball.holder;
+    const b = aiming;
+    const lane = laneRead(a, b);
+    ctx.save();
+    ctx.setLineDash([9, 7]);
+    ctx.lineWidth = 4.5;
+    ctx.strokeStyle = lane.color;
+    ctx.shadowColor = lane.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, R + 9, 0, Math.PI * 2);
+    ctx.strokeStyle = lane.color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    const midX = (a.x + b.x) / 2;
+    const midY = (a.y + b.y) / 2;
+    const label = lane.label + ' / ' + lane.detail;
+    ctx.font = 'bold 12px sans-serif';
+    const tw = Math.min(ctx.measureText(label).width + 18, fW - 24);
+    ctx.fillStyle = 'rgba(0,0,0,0.66)';
+    ctx.fillRect(midX - tw / 2, midY - 28, tw, 22);
+    ctx.fillStyle = lane.color;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, midX, midY - 13, tw - 10);
+
+    if(lane.cut) {
+        ctx.beginPath();
+        ctx.arc(lane.cut.x, lane.cut.y, R + 12, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,107,107,0.90)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function drawPlayer(p) {
+    const isHolder = p === ball.holder;
+    if(isHolder) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, R + 8, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,210,63,0.28)';
+        ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
+    ctx.fillStyle = p.team === 'blue' ? getCSS('--blue') : getCSS('--red');
+    ctx.fill();
+    ctx.lineWidth = isHolder ? 4 : 2;
+    ctx.strokeStyle = isHolder ? '#fff' : 'rgba(0,0,0,0.4)';
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold ' + Math.round(R * 1.05) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.num, p.x, p.y + 0.5);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(255,255,255,0.84)';
+    ctx.font = 'bold 9px sans-serif';
+    const label = p.role + (traitName(p) ? ' ' + traitName(p) : '');
+    ctx.fillText(label, p.x, p.y + R + 11, R * 4.7);
+
+    if(isHolder) {
+        ctx.fillStyle = getCSS('--accent');
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('ボール', p.x, p.y - R - 10);
+    }
+}
+
+function drawRewardHud() {
+    const top = fY0 + 38;
+    const x = fX0 + 12;
+    const w = Math.min(fW - 24, 360);
+    const h = 16;
+    const fill = w * chance / 100;
+    const glow = pulse * 10;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.42)';
+    ctx.fillRect(x - 2, top - 20, w + 4, 64);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(currentMission(), x, top - 6, w);
+    ctx.fillStyle = 'rgba(255,255,255,0.80)';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillText(nextRecruitText(), x, top + 31, w);
+    if(level > LEVELS.length) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(255,255,255,0.78)';
+        ctx.fillText('配置変化 +' + Math.floor((level - 1) / LEVELS.length), x + w, top - 6);
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(x, top + 2, w, h);
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, '#8bd3ff');
+    grad.addColorStop(0.55, '#ffd23f');
+    grad.addColorStop(1, '#ff8f5a');
+    ctx.fillStyle = grad;
+    ctx.shadowColor = 'rgba(255,210,63,0.75)';
+    ctx.shadowBlur = 4 + glow;
+    ctx.fillRect(x, top + 2, fill, h);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.72)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, top + 2, w, h);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('チャンス ' + Math.round(chance) + '%', x + w - 4, top + 15);
+    ctx.textAlign = 'left';
+    ctx.fillText('手数 ' + turnCount + (hintUsed ? ' / ヒント使用' : ' / ノーヒント'), x + 4, top + 15);
+
+    if(chance >= 86) {
+        ctx.fillStyle = 'rgba(255,210,63,0.92)';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('チャンス!', fX0 + fW / 2, fY0 + 82);
+    }
+
+    if(phase === 'clear') {
+        const bw = Math.min(fW - 34, 330);
+        const bx = fX0 + fW / 2 - bw / 2;
+        const by = fY0 + fH * 0.30;
+        ctx.fillStyle = 'rgba(0,0,0,0.66)';
+        ctx.fillRect(bx, by, bw, 92);
+        ctx.strokeStyle = 'rgba(255,210,63,0.85)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, by, bw, 92);
+        ctx.fillStyle = '#ffd23f';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('CLEAR!', fX0 + fW / 2, by + 32);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(starText(starsEarned), fX0 + fW / 2, by + 58);
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('次は相手の配置が変わります', fX0 + fW / 2, by + 78);
+    }
+    ctx.restore();
+}
+
+function drawEffects() {
+    ctx.save();
+    for(const e of effects) {
+        const a = clamp(e.life / e.maxLife, 0, 1);
+        ctx.globalAlpha = a;
+        if(e.type === 'line') {
+            ctx.strokeStyle = e.color;
+            ctx.lineWidth = 5 + (1 - a) * 8;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(e.x1, e.y1);
+            ctx.lineTo(e.x2, e.y2);
+            ctx.stroke();
+        }
+        else if(e.type === 'space') {
+            ctx.fillStyle = 'rgba(255,210,63,0.22)';
+            ctx.strokeStyle = 'rgba(255,210,63,0.90)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r * (1.15 - a * 0.15), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(e.label, e.x, e.y + 4);
+        }
+        else if(e.type === 'text') {
+            ctx.fillStyle = e.color;
+            ctx.font = 'bold 18px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.65)';
+            ctx.shadowBlur = 6;
+            ctx.fillText(e.text, e.x, e.y - (1 - a) * 22);
+            ctx.shadowBlur = 0;
+        }
+    }
+    ctx.restore();
+}
+
+function draw() {
+    drawField();
+    if(chance > 55) {
+        ctx.save();
+        const a = clamp((chance - 55) / 55, 0, 0.42);
+        const grad = ctx.createLinearGradient(0, fY0, 0, fY0 + fH * 0.48);
+        grad.addColorStop(0, 'rgba(255,210,63,' + a + ')');
+        grad.addColorStop(1, 'rgba(255,210,63,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(fX0, fY0, fW, fH * 0.5);
+        ctx.restore();
+    }
+    drawRewardHud();
+    drawEffects();
+    for(const a of arrows) drawArrow(a);
+    drawAim();
+    for(const p of players) {
+        if(p !== ball.holder) drawPlayer(p);
+    }
+    if(ball.holder) drawPlayer(ball.holder);
+
+    if(!ball.holder || ballFlight) {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, R * 0.42, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+    if(caption) {
+        ctx.font = 'bold 14px sans-serif';
+        const maxW = Math.max(120, fW - 24);
+        const textW = Math.min(ctx.measureText(caption).width + 24, maxW);
+        ctx.fillStyle = 'rgba(0,0,0,0.62)';
+        ctx.fillRect(fX0 + fW / 2 - textW / 2, fY0 + fH - 44, textW, 28);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(caption, fX0 + fW / 2, fY0 + fH - 25, textW - 14);
+    }
+
+    if(mode === 'edit') {
+        ctx.fillStyle = 'rgba(255,210,63,0.96)';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('配置編集中: 選手をドラッグして場面づくり', fX0 + fW / 2, fY0 + 34);
+    }
+}
+
+const LERP = 0.2;
+const HOLD = 16;
+
+function loop() {
+    let moving = false;
+    pulse *= 0.88;
+    for(let i = effects.length - 1; i >= 0; i--) {
+        effects[i].life--;
+        if(effects[i].life <= 0) effects.splice(i, 1);
+    }
+
+    for(const p of players) {
+        p.x += (p.tx - p.x) * LERP;
+        p.y += (p.ty - p.y) * LERP;
+        if(Math.hypot(p.tx - p.x, p.ty - p.y) > 0.5) {
+            moving = true;
+        }
+        else {
+            p.x = p.tx;
+            p.y = p.ty;
+        }
+    }
+
+    if(ballFlight) {
+        ball.x += (ball.tx - ball.x) * 0.26;
+        ball.y += (ball.ty - ball.y) * 0.26;
+        if(Math.hypot(ball.tx - ball.x, ball.ty - ball.y) > 0.5) {
+            moving = true;
+        }
+        else {
+            ball.x = ball.tx;
+            ball.y = ball.ty;
+        }
+    }
+    else if(ball.holder) {
+        ball.x = ball.holder.x;
+        ball.y = ball.holder.y;
+    }
+
+    draw();
+
+    if(busy && !moving) {
+        holdCnt++;
+        if(holdCnt >= HOLD) {
+            busy = false;
+            caption = '';
+            const cb = pendingResolve;
+            pendingResolve = null;
+            if(cb) cb();
+        }
+    }
+    requestAnimationFrame(loop);
+}
+
+let dragging = null;
+let downX = 0;
+let downY = 0;
+let activePointerId = null;
+
+function getEventPos(e) {
+    const rect = cv.getBoundingClientRect();
+    const clientX = typeof e.clientX === 'number' ? e.clientX : 0;
+    const clientY = typeof e.clientY === 'number' ? e.clientY : 0;
+    return { x:clientX - rect.left, y:clientY - rect.top };
+}
+
+function pickPlayer(x, y) {
+    for(const p of players) {
+        if(dist({x, y}, p) < R * 1.5) return p;
+    }
+    return null;
+}
+
+function pointerDown(e) {
+    if(e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+    e.preventDefault();
+    if(activePointerId !== null) return;
+    activePointerId = e.pointerId;
+    if(cv.setPointerCapture) {
+        try { cv.setPointerCapture(e.pointerId); } catch(err) {}
+    }
+    const q = getEventPos(e);
+    downX = q.x;
+    downY = q.y;
+    if(mode === 'edit') {
+        dragging = pickPlayer(q.x, q.y) || (ball.holder ? null : ball);
+    }
+}
+
+function pointerMove(e) {
+    if(activePointerId !== null && e.pointerId !== activePointerId) return;
+    if(mode !== 'edit' || !dragging) return;
+    e.preventDefault();
+    const q = getEventPos(e);
+    dragging.x = dragging.tx = clamp(q.x, fX0 + R, fX1 - R);
+    dragging.y = dragging.ty = clamp(q.y, fY0 + R, fY0 + fH - R);
+    if(dragging === ball.holder) {
+        ball.x = dragging.x;
+        ball.y = dragging.y;
+    }
+    draw();
+}
+
+function pointerUp(e) {
+    if(activePointerId !== null && e.pointerId !== activePointerId) return;
+    e.preventDefault();
+    if(cv.releasePointerCapture) {
+        try { cv.releasePointerCapture(e.pointerId); } catch(err) {}
+    }
+    activePointerId = null;
+
+    if(mode === 'edit') {
+        dragging = null;
+        return;
+    }
+    if(busy) return;
+
+    const q = getEventPos(e);
+    if(!isFinite(q.x) || !isFinite(q.y)) return;
+    if(Math.hypot(q.x - downX, q.y - downY) > R * 1.2) return;
+
+    if(phase === 'lost') {
+        setFeedback('', '「1手戻す」か「リセット」で続けよう。');
+        return;
+    }
+
+    const hit = pickPlayer(q.x, q.y);
+    if(hit && hit.team === 'blue' && hit !== ball.holder) {
+        startAim(hit);
+        return;
+    }
+    if(hit && hit === ball.holder) return;
+
+    if(phase === 'you') {
+        doDribble(
+            clamp(q.x, fX0 + R, fX1 - R),
+            clamp(q.y, fY0 + R, fY0 + fH - R)
+        );
+    }
+}
+
+cv.addEventListener('pointerdown', pointerDown, {passive:false});
+cv.addEventListener('pointermove', pointerMove, {passive:false});
+cv.addEventListener('pointerup', pointerUp, {passive:false});
+cv.addEventListener('pointercancel', pointerUp, {passive:false});
+
+document.getElementById('doPass').addEventListener('click', releasePass);
+document.getElementById('cancelPass').addEventListener('click', cancelAim);
+document.getElementById('shootBtn').addEventListener('click', doShoot);
+document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
+document.getElementById('retryLevelBtn').addEventListener('click', retryLevel);
+hintBtn.addEventListener('click', showHint);
+document.getElementById('undoBtn').addEventListener('click', undo);
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    mode = 'drill';
+    editBtn.classList.remove('on');
+    level = 1;
+    goals = 0;
+    clearedCount = 0;
+    reset(24);
+});
+
+editBtn.addEventListener('click', () => {
+    mode = mode === 'edit' ? 'drill' : 'edit';
+    editBtn.classList.toggle('on', mode === 'edit');
+    if(mode === 'edit') {
+        phase = 'you';
+        aiming = null;
+        restState();
+        setFeedback('', '配置編集モード。選手をドラッグして場面を作れます。もう一度押すとトレーニングに戻ります。');
+    }
+    else {
+        setFeedback('', 'トレーニングに戻りました。作った場面で判断してみよう。');
+    }
+});
+
+difficultySel.addEventListener('change', () => {
+    difficulty = difficultySel.value;
+    computeField();
+    restState();
+    setFeedback('', '<b>難易度: ' + activeDifficulty().label + '</b> ' + activeDifficulty().note);
+});
+
+function resizeGame() {
+    computeField();
+    for(const p of players) {
+        p.x = clamp(p.x, fX0 + R, fX1 - R);
+        p.y = clamp(p.y, fY0 + R, fY0 + fH - R);
+        p.tx = clamp(p.tx, fX0 + R, fX1 - R);
+        p.ty = clamp(p.ty, fY0 + R, fY0 + fH - R);
+    }
+    if(ball.holder) {
+        ball.x = ball.tx = ball.holder.x;
+        ball.y = ball.ty = ball.holder.y;
+    }
+}
+
+window.addEventListener('resize', resizeGame);
+if(window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resizeGame);
+}
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+
+reset();
+loop();
+</script>
+</body>
+</html>
