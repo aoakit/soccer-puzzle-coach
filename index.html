@@ -135,7 +135,7 @@
         background:var(--glass);
         border:1px solid rgba(255,255,255,0.12);
         border-radius:14px;
-        padding:10px 13px;
+        padding:10px 38px 10px 13px;
         box-sizing:border-box;
         min-height:34px;
         font-size:13.5px;
@@ -143,6 +143,28 @@
         backdrop-filter:blur(10px);
         -webkit-backdrop-filter:blur(10px);
         box-shadow:0 10px 26px rgba(0,0,0,.40);
+        pointer-events:none; /* タップはフィールドへ透過 */
+        transition:opacity .22s ease;
+    }
+    #feedback.dim{ opacity:0.14; }
+    #feedback.min{
+        max-height:40px;
+        overflow:hidden;
+        opacity:0.92;
+    }
+    #fbToggle{
+        position:absolute;
+        top:6px;
+        right:6px;
+        width:28px;
+        height:28px;
+        min-height:28px;
+        padding:0;
+        border-radius:8px;
+        font-size:13px;
+        line-height:1;
+        pointer-events:auto; /* ボタンだけタップ可能 */
+        background:rgba(255,255,255,0.10);
     }
     #feedback .mark{
         font-size:19px;
@@ -373,7 +395,10 @@
         <button id="retryLevelBtn">もう一回</button>
     </div>
 
-    <div id="feedback"></div>
+    <div id="feedback">
+        <button id="fbToggle" aria-label="メッセージを折りたたむ">▾</button>
+        <div id="fbBody"></div>
+    </div>
     <div id="toast"></div>
 
     <div id="zukan" role="dialog" aria-label="コレクション図鑑">
@@ -393,6 +418,7 @@ const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const statusEl = document.getElementById('status');
 const fb = document.getElementById('feedback');
+const fbBody = document.getElementById('fbBody');
 const passbar = document.getElementById('passbar');
 const shootbar = document.getElementById('shootbar');
 const clearbar = document.getElementById('clearbar');
@@ -445,7 +471,7 @@ function computeField() {
 
     fX0 = 14;
     fX1 = W - 14;
-    fY0 = W < 520 ? 240 : 200;
+    fY0 = W < 520 ? 248 : 200;
     fY1 = H - 58;
 
     fW = fX1 - fX0;
@@ -2125,7 +2151,7 @@ function restState() {
     statusEl.className = ({you:'you', ask:'ask', lost:'lost', clear:'clear'})[phase] || 'you';
     if(phase === 'you') {
         const holderTrait = ball.holder && ball.holder.trait && ball.holder.trait.name !== '標準' ? ' / ' + ball.holder.trait.name : '';
-        statusEl.innerHTML = currentLevelName() + ' / 青' + (ball.holder ? ball.holder.num : '') + '番' + holderTrait + '<small>🎖 ' + rankName() + ' · 連勝 ' + streak + ' (ベスト' + progress.bestStreak + ') · 図鑑 ' + ownedKinds() + '/' + CARDS.length + ' · 実績 ' + progress.ach.length + '/' + ACHIEVEMENTS.length + ' · ' + activeDifficulty().label + '</small>';
+        statusEl.innerHTML = currentLevelName() + ' / 青' + (ball.holder ? ball.holder.num : '') + '番' + holderTrait + '<small>🎖' + rankName() + '・図鑑' + ownedKinds() + '/' + CARDS.length + '・実績' + progress.ach.length + '/' + ACHIEVEMENTS.length + '・' + activeDifficulty().label + '</small>';
     }
     else if(phase === 'ask') {
         statusEl.innerHTML = (aiming ? aiming.num : '') + '番へ出す？<small>コースが通っていれば「出す」、消されていたら「やめる」</small>';
@@ -2139,7 +2165,8 @@ function restState() {
 }
 
 function setFeedback(mark, text) {
-    fb.innerHTML = (mark ? '<span class="mark">' + mark + '</span>' : '') + text;
+    fbBody.innerHTML = (mark ? '<span class="mark">' + mark + '</span>' : '') + text;
+    fb.classList.remove('dim');
 }
 function passReview(from, to) {
     const lane = laneRead(from, to);
@@ -2803,10 +2830,21 @@ function pickPlayer(x, y) {
     return null;
 }
 
+let fbDimTimer = null;
+function dimFeedback() {
+    fb.classList.add('dim');
+    if(fbDimTimer) clearTimeout(fbDimTimer);
+}
+function undimFeedbackSoon() {
+    if(fbDimTimer) clearTimeout(fbDimTimer);
+    fbDimTimer = setTimeout(() => fb.classList.remove('dim'), 1100);
+}
+
 function pointerDown(e) {
     if(e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
     e.preventDefault();
     sfx.unlock();
+    dimFeedback();
     if(activePointerId !== null) return;
     activePointerId = e.pointerId;
     if(cv.setPointerCapture) {
@@ -2837,6 +2875,7 @@ function pointerMove(e) {
 function pointerUp(e) {
     if(activePointerId !== null && e.pointerId !== activePointerId) return;
     e.preventDefault();
+    undimFeedbackSoon();
     if(cv.releasePointerCapture) {
         try { cv.releasePointerCapture(e.pointerId); } catch(err) {}
     }
@@ -2884,6 +2923,13 @@ document.getElementById('nextLevelBtn').addEventListener('click', () => { sfx.ta
 document.getElementById('retryLevelBtn').addEventListener('click', () => { sfx.tap(); retryLevel(); });
 hintBtn.addEventListener('click', showHint);
 document.getElementById('undoBtn').addEventListener('click', undo);
+
+const fbToggle = document.getElementById('fbToggle');
+fbToggle.addEventListener('click', () => {
+    sfx.tap();
+    const min = fb.classList.toggle('min');
+    fbToggle.textContent = min ? '▴' : '▾';
+});
 
 const muteBtn = document.getElementById('muteBtn');
 muteBtn.textContent = sfx.isMuted() ? '🔇' : '🔊';
