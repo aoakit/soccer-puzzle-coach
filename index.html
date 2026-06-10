@@ -56,6 +56,13 @@
     #btns > *{
         pointer-events:auto;
     }
+    #btns.collapsed > :not(#menuBtn){
+        display:none;
+    }
+    #menuBtn{
+        order:99; /* 常に右端 */
+        min-width:38px;
+    }
     button, select{
         font-family:inherit;
         font-size:12px;
@@ -206,9 +213,10 @@
     }
     @media (max-width:520px){
         button, select{ font-size:11px; padding:7px 10px; }
-        #status{ top:88px; font-size:14px; }
+        #status{ top:52px; font-size:14px; }
+        body.menu-open #status{ top:88px; }
         #feedback{ font-size:13px; }
-        #toast{ top:142px; }
+        #toast{ top:128px; }
     }
 
     /* ---------- コレクション図鑑 ---------- */
@@ -367,6 +375,7 @@
 
     <div id="btns" class="row">
         <button id="muteBtn" aria-label="サウンド切替">🔊</button>
+        <button id="menuBtn" aria-label="メニュー開閉">☰</button>
         <button id="zukanBtn">図鑑</button>
         <select id="difficulty" aria-label="難易度">
             <option value="easy">やさしい</option>
@@ -457,6 +466,8 @@ function activeDifficulty() {
     return DIFFICULTY[difficulty] || DIFFICULTY.normal;
 }
 
+let menuIsOpen = true;
+
 function computeField() {
     const dpr = window.devicePixelRatio || 1;
 
@@ -471,7 +482,7 @@ function computeField() {
 
     fX0 = 14;
     fX1 = W - 14;
-    fY0 = W < 520 ? 248 : 200;
+    fY0 = W < 520 ? (menuIsOpen ? 248 : 208) : 200;
     fY1 = H - 58;
 
     fW = fX1 - fX0;
@@ -640,7 +651,8 @@ function loadProgress() {
                 xp: Number.isFinite(data.xp) ? Math.max(0, data.xp) : 0,
                 bestStreak: Number.isFinite(data.bestStreak) ? Math.max(0, data.bestStreak) : 0,
                 ach: Array.isArray(data.ach) ? data.ach.filter(s => typeof s === 'string') : [],
-                muted: !!data.muted
+                muted: !!data.muted,
+                menuOpen: typeof data.menuOpen === 'boolean' ? data.menuOpen : null
             };
         }
         // v1からの引き継ぎ: 解放済みスロットをカード所持に変換（XP・実績も移行）
@@ -660,13 +672,14 @@ function loadProgress() {
                 xp: Number.isFinite(v1.xp) ? Math.max(0, v1.xp) : 0,
                 bestStreak: Number.isFinite(v1.bestStreak) ? Math.max(0, v1.bestStreak) : 0,
                 ach: Array.isArray(v1.ach) ? v1.ach.filter(s => typeof s === 'string') : [],
-                muted: !!v1.muted
+                muted: !!v1.muted,
+                menuOpen: null
             };
         }
-        return { totalClears:0, cards:{}, pity:0, xp:0, bestStreak:0, ach:[], muted:false };
+        return { totalClears:0, cards:{}, pity:0, xp:0, bestStreak:0, ach:[], muted:false, menuOpen:null };
     }
     catch(err) {
-        return { totalClears:0, cards:{}, pity:0, xp:0, bestStreak:0, ach:[], muted:false };
+        return { totalClears:0, cards:{}, pity:0, xp:0, bestStreak:0, ach:[], muted:false, menuOpen:null };
     }
 }
 
@@ -2931,6 +2944,28 @@ fbToggle.addEventListener('click', () => {
     fbToggle.textContent = min ? '▴' : '▾';
 });
 
+const btnsRow = document.getElementById('btns');
+const menuBtn = document.getElementById('menuBtn');
+
+function applyMenuState() {
+    btnsRow.classList.toggle('collapsed', !menuIsOpen);
+    document.body.classList.toggle('menu-open', menuIsOpen);
+    menuBtn.textContent = menuIsOpen ? '✕' : '☰';
+    menuBtn.classList.toggle('on', menuIsOpen);
+    resizeGame();
+}
+
+menuBtn.addEventListener('click', () => {
+    sfx.tap();
+    menuIsOpen = !menuIsOpen;
+    progress.menuOpen = menuIsOpen;
+    saveProgress();
+    applyMenuState();
+});
+
+// 初期状態: 保存値があればそれを、なければスマホは折りたたみ・PCは展開
+menuIsOpen = typeof progress.menuOpen === 'boolean' ? progress.menuOpen : window.innerWidth >= 520;
+
 const muteBtn = document.getElementById('muteBtn');
 muteBtn.textContent = sfx.isMuted() ? '🔇' : '🔊';
 muteBtn.addEventListener('click', () => {
@@ -3051,6 +3086,7 @@ zukanEl.addEventListener('click', (e) => {
     if(e.target === zukanEl) zukanEl.classList.remove('open');
 });
 
+applyMenuState();
 reset();
 loop();
 </script>
