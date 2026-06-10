@@ -3,22 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>サッカー判断パズルコーチ v3.8 ガチャ演出</title>
+<title>サッカー判断パズル NIGHT MATCH v4.1 図鑑ガチャ</title>
 <style>
     :root{
-        --pitch:#1f6b3a;
-        --blue:#2f6df6;
-        --red:#e23b3b;
-        --accent:#ffd23f;
-        --ink:#ffffff;
+        --bg0:#06100b;
+        --bg1:#0e2317;
+        --pitch:#143d27;
+        --blue:#4d8dff;
+        --red:#ff5470;
+        --volt:#d6ff3f;
+        --gold:#ffd23f;
+        --accent:#d6ff3f;
+        --ink:#f2fbf4;
+        --glass:rgba(8,20,14,0.62);
     }
     html,body{
         margin:0;
         padding:0;
         height:100%;
         overflow:hidden;
-        background:#0e1a12;
-        font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+        background:radial-gradient(120% 90% at 50% 0%, var(--bg1), var(--bg0));
+        font-family:"Avenir Next","Helvetica Neue",-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
         color:var(--ink);
         -webkit-text-size-adjust:100%;
     }
@@ -53,26 +58,34 @@
     }
     button, select{
         font-family:inherit;
-        font-size:13px;
+        font-size:12px;
         font-weight:800;
-        color:#fff;
-        border:none;
-        border-radius:8px;
-        padding:8px 10px;
-        background:rgba(255,255,255,0.16);
+        letter-spacing:.04em;
+        color:var(--ink);
+        border:1px solid rgba(255,255,255,0.14);
+        border-radius:999px;
+        padding:8px 13px;
+        background:rgba(255,255,255,0.07);
+        backdrop-filter:blur(8px);
+        -webkit-backdrop-filter:blur(8px);
         -webkit-tap-highlight-color:transparent;
         cursor:pointer;
         min-height:34px;
+        transition:transform .08s ease, background .15s ease;
     }
     select{
-        color:#102016;
-        background:var(--accent);
+        color:#0c1a10;
+        background:var(--volt);
+        border-color:transparent;
         max-width:118px;
+        font-weight:900;
     }
-    button:active{ transform:scale(0.97); }
+    button:active{ transform:scale(0.95); }
     button.on, button.primary{
-        background:var(--accent);
-        color:#1a1205;
+        background:linear-gradient(135deg, var(--volt), #8fe34a);
+        color:#0c1a10;
+        border-color:transparent;
+        box-shadow:0 0 18px rgba(214,255,63,0.35);
     }
     #status{
         position:absolute;
@@ -81,61 +94,249 @@
         right:10px;
         z-index:5;
         text-align:center;
-        font-size:16px;
+        font-size:15px;
         font-weight:900;
-        padding:10px 12px;
-        border-radius:10px;
-        background:rgba(47,109,246,0.92);
-        box-shadow:0 4px 16px rgba(0,0,0,.35);
+        padding:10px 14px;
+        border-radius:14px;
+        background:var(--glass);
+        border:1px solid rgba(255,255,255,0.10);
+        border-left:4px solid var(--blue);
+        backdrop-filter:blur(10px);
+        -webkit-backdrop-filter:blur(10px);
+        box-shadow:0 8px 24px rgba(0,0,0,.45);
         line-height:1.4;
     }
     #status small{
         display:block;
-        margin-top:2px;
-        font-size:12px;
+        margin-top:3px;
+        font-size:11.5px;
         font-weight:700;
-        opacity:.92;
+        opacity:.78;
+        letter-spacing:.02em;
     }
-    #status.ask{ background:rgba(255,176,0,.94); color:#1b1404; }
-    #status.lost{ background:rgba(226,59,59,.94); }
-    #status.clear{ background:rgba(28,178,105,.95); }
+    #status.ask{ border-left-color:var(--gold); }
+    #status.lost{ border-left-color:var(--red); }
+    #status.clear{ border-left-color:var(--volt); }
     #passbar,
     #shootbar,
     #clearbar{
         bottom:0;
         justify-content:center;
         padding-bottom:calc(10px + env(safe-area-inset-bottom));
-        background:linear-gradient(to top, rgba(0,0,0,.42), rgba(0,0,0,0));
+        background:linear-gradient(to top, rgba(0,0,0,.5), rgba(0,0,0,0));
         display:none;
     }
     #feedback{
         position:absolute;
         left:10px;
         right:10px;
-        bottom:calc(54px + env(safe-area-inset-bottom));
+        bottom:calc(56px + env(safe-area-inset-bottom));
         z-index:4;
-        background:rgba(0,0,0,.56);
-        border:1px solid rgba(255,255,255,.15);
-        border-radius:10px;
-        padding:9px 11px;
+        background:var(--glass);
+        border:1px solid rgba(255,255,255,0.12);
+        border-radius:14px;
+        padding:10px 13px;
         box-sizing:border-box;
         min-height:34px;
         font-size:13.5px;
-        line-height:1.5;
+        line-height:1.55;
+        backdrop-filter:blur(10px);
+        -webkit-backdrop-filter:blur(10px);
+        box-shadow:0 10px 26px rgba(0,0,0,.40);
     }
     #feedback .mark{
         font-size:19px;
         font-weight:900;
         margin-right:5px;
+        color:var(--volt);
     }
     #feedback .hint{
-        opacity:.84;
+        opacity:.78;
         font-size:12px;
     }
+    #feedback b{ color:var(--volt); }
+    #toast{
+        position:absolute;
+        top:110px;
+        left:50%;
+        transform:translate(-50%,-14px);
+        z-index:9;
+        background:linear-gradient(135deg, rgba(214,255,63,.97), rgba(255,210,63,.97));
+        color:#11200f;
+        font-weight:900;
+        font-size:13.5px;
+        letter-spacing:.02em;
+        padding:10px 18px;
+        border-radius:999px;
+        box-shadow:0 10px 28px rgba(214,255,63,.35);
+        opacity:0;
+        pointer-events:none;
+        transition:opacity .28s ease, transform .28s ease;
+        max-width:84vw;
+        text-align:center;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+    #toast.show{
+        opacity:1;
+        transform:translate(-50%,0);
+    }
     @media (max-width:520px){
-        button, select{ font-size:12px; padding:7px 8px; }
-        #status{ top:84px; font-size:15px; }
+        button, select{ font-size:11px; padding:7px 10px; }
+        #status{ top:88px; font-size:14px; }
         #feedback{ font-size:13px; }
+        #toast{ top:142px; }
+    }
+
+    /* ---------- コレクション図鑑 ---------- */
+    #zukanBtn{
+        background:linear-gradient(135deg, rgba(207,139,255,0.85), rgba(77,141,255,0.85));
+        border-color:transparent;
+        color:#fff;
+        box-shadow:0 0 14px rgba(207,139,255,0.30);
+    }
+    #zukan{
+        position:absolute;
+        inset:0;
+        z-index:20;
+        display:none;
+        background:rgba(3,9,6,.74);
+        backdrop-filter:blur(6px);
+        -webkit-backdrop-filter:blur(6px);
+        overflow:auto;
+        padding:14px;
+        box-sizing:border-box;
+    }
+    #zukan.open{ display:block; }
+    .zukan-panel{
+        max-width:560px;
+        margin:0 auto;
+        background:linear-gradient(180deg, rgba(14,35,23,.96), rgba(7,16,11,.96));
+        border:1px solid rgba(214,255,63,0.25);
+        border-radius:20px;
+        padding:16px 14px calc(16px + env(safe-area-inset-bottom));
+        color:var(--ink);
+        box-shadow:0 14px 40px rgba(0,0,0,.55);
+    }
+    .zukan-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:8px;
+        margin-bottom:8px;
+    }
+    .zukan-head h2{
+        margin:0;
+        font-size:19px;
+        font-weight:900;
+        color:var(--volt);
+        letter-spacing:.02em;
+    }
+    .zukan-close{
+        background:rgba(255,255,255,0.08);
+        color:var(--ink);
+    }
+    .zukan-meter{
+        background:rgba(255,255,255,.10);
+        border-radius:999px;
+        height:18px;
+        position:relative;
+        overflow:hidden;
+        margin:6px 0 4px;
+        border:1px solid rgba(255,255,255,.14);
+    }
+    .zukan-meter > i{
+        position:absolute;
+        inset:0;
+        width:0%;
+        background:linear-gradient(90deg, #4d8dff, #d6ff3f, #ffd23f);
+        border-radius:999px;
+        transition:width .5s ease;
+    }
+    .zukan-meter > b{
+        position:absolute;
+        inset:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:11px;
+        font-weight:900;
+        color:#0c1a10;
+        text-shadow:0 0 4px rgba(255,255,255,.55);
+    }
+    .zukan-sub{
+        font-size:11.5px;
+        font-weight:700;
+        color:rgba(242,251,244,.78);
+        margin-bottom:10px;
+        line-height:1.55;
+    }
+    .zukan-sub b{ color:var(--volt); }
+    .zukan-grid{
+        display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(112px, 1fr));
+        gap:8px;
+    }
+    .card{
+        position:relative;
+        border-radius:14px;
+        padding:9px 7px 8px;
+        text-align:center;
+        background:rgba(255,255,255,0.06);
+        border:2px solid transparent;
+        min-height:106px;
+        box-sizing:border-box;
+    }
+    .card .ic{ font-size:29px; line-height:1.15; display:block; }
+    .card .nm{ font-size:11.5px; font-weight:900; display:block; margin-top:2px; line-height:1.3; }
+    .card .rt{ font-size:11px; font-weight:900; letter-spacing:1px; display:block; }
+    .card .ds{ font-size:9.5px; font-weight:700; opacity:.68; display:block; margin-top:1px; line-height:1.35; }
+    .card .lv{
+        position:absolute;
+        top:-7px;
+        right:-5px;
+        background:var(--gold);
+        color:#5c4500;
+        font-size:10px;
+        font-weight:900;
+        border-radius:999px;
+        padding:3px 7px;
+        box-shadow:0 2px 6px rgba(0,0,0,.45);
+    }
+    .card.r1{ border-color:rgba(108,185,255,.65); }
+    .card.r1 .rt{ color:#6cb9ff; }
+    .card.r2{ border-color:rgba(95,216,130,.65); }
+    .card.r2 .rt{ color:#5fd882; }
+    .card.r3{ border-color:rgba(207,139,255,.75); background:rgba(207,139,255,0.10); box-shadow:0 0 12px rgba(207,139,255,.18); }
+    .card.r3 .rt{ color:#cf8bff; }
+    .card.r4{
+        border-color:transparent;
+        background:
+            linear-gradient(rgba(20,38,26,.94), rgba(20,38,26,.94)) padding-box,
+            linear-gradient(120deg, #ff7ab8, #ffd23f, #7df0a8, #7fd4ff, #cf8bff) border-box;
+        box-shadow:0 0 16px rgba(255,210,63,.28);
+    }
+    .card.r4 .rt{
+        background:linear-gradient(90deg, #ff7ab8, #ffd23f, #7df0a8, #7fd4ff, #cf8bff);
+        -webkit-background-clip:text;
+        background-clip:text;
+        color:transparent;
+    }
+    .card.locked{
+        background:rgba(255,255,255,0.03);
+        border-color:rgba(255,255,255,.12);
+        color:rgba(242,251,244,.45);
+        box-shadow:none;
+    }
+    .card.locked .ic{ filter:grayscale(1) brightness(0) invert(.55); opacity:.30; }
+    @media (max-width:520px){
+        .zukan-grid{ grid-template-columns:repeat(3, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce){
+        button{ transition:none; }
+        #toast{ transition:opacity .2s; }
+        .zukan-meter > i{ transition:none; }
     }
 </style>
 </head>
@@ -143,6 +344,8 @@
     <canvas id="cv"></canvas>
 
     <div id="btns" class="row">
+        <button id="muteBtn" aria-label="サウンド切替">🔊</button>
+        <button id="zukanBtn">図鑑</button>
         <select id="difficulty" aria-label="難易度">
             <option value="easy">やさしい</option>
             <option value="normal" selected>ふつう</option>
@@ -171,6 +374,19 @@
     </div>
 
     <div id="feedback"></div>
+    <div id="toast"></div>
+
+    <div id="zukan" role="dialog" aria-label="コレクション図鑑">
+        <div class="zukan-panel">
+            <div class="zukan-head">
+                <h2>📖 コレクション図鑑</h2>
+                <button class="zukan-close" id="zukanClose">とじる ✕</button>
+            </div>
+            <div class="zukan-meter"><i id="zukanFill"></i><b id="zukanRate"></b></div>
+            <div class="zukan-sub" id="zukanInfo"></div>
+            <div class="zukan-grid" id="zukanGrid"></div>
+        </div>
+    </div>
 
 <script>
 const cv = document.getElementById('cv');
@@ -229,7 +445,7 @@ function computeField() {
 
     fX0 = 14;
     fX1 = W - 14;
-    fY0 = W < 520 ? 126 : 96;
+    fY0 = W < 520 ? 240 : 200;
     fY1 = H - 58;
 
     fW = fX1 - fX0;
@@ -314,23 +530,63 @@ const SPECIAL_TRAITS = [
     { name:'スプリント', desc:'裏へ抜ける動きが速い', dribble:1.06, keep:0.95, pass:1.00, speed:1.22, finish:1.04 },
     { name:'フィニッシュ', desc:'ゴール前へ入るのが得意', dribble:1.02, keep:0.92, pass:1.04, speed:1.06, finish:1.18 }
 ];
-const GACHA_POOL = [
-    { slot:4, trait:SPECIAL_TRAITS[4], title:'青5番 ドリブル型', weight:18 },
-    { slot:3, trait:SPECIAL_TRAITS[3], title:'青4番 司令塔', weight:16 },
-    { slot:5, trait:SPECIAL_TRAITS[5], title:'青6番 スプリント型', weight:15 },
-    { slot:6, trait:SPECIAL_TRAITS[6], title:'青7番 フィニッシュ型', weight:14 },
-    { slot:2, trait:SPECIAL_TRAITS[2], title:'青3番 快速型', weight:14 },
-    { slot:1, trait:SPECIAL_TRAITS[1], title:'青2番 展開型', weight:12 },
-    { slot:0, trait:SPECIAL_TRAITS[0], title:'青1番 安定型', weight:11 }
+const RARITIES = {
+    1: { name:'ノーマル',     short:'N',  stars:'★',    color:'#6cb9ff', weight:40, anim:110 },
+    2: { name:'レア',         short:'R',  stars:'★★',   color:'#5fd882', weight:32, anim:110 },
+    3: { name:'スーパーレア', short:'SR', stars:'★★★',  color:'#cf8bff', weight:21, anim:150 },
+    4: { name:'ウルトラレア', short:'UR', stars:'★★★★', color:'#ffd23f', weight:7,  anim:190 }
+};
+const CARDS = [
+    { id:'p1', kind:'player', slot:0, rarity:1, icon:'🛡️', title:'青1番 安定型',         trait:SPECIAL_TRAITS[0] },
+    { id:'p2', kind:'player', slot:1, rarity:2, icon:'🧭', title:'青2番 展開型',         trait:SPECIAL_TRAITS[1] },
+    { id:'p3', kind:'player', slot:2, rarity:2, icon:'💨', title:'青3番 快速型',         trait:SPECIAL_TRAITS[2] },
+    { id:'p4', kind:'player', slot:3, rarity:3, icon:'🎯', title:'青4番 司令塔',         trait:SPECIAL_TRAITS[3] },
+    { id:'p5', kind:'player', slot:4, rarity:3, icon:'⚡', title:'青5番 ドリブル型',     trait:SPECIAL_TRAITS[4] },
+    { id:'p6', kind:'player', slot:5, rarity:3, icon:'🚀', title:'青6番 スプリント型',   trait:SPECIAL_TRAITS[5] },
+    { id:'p7', kind:'player', slot:6, rarity:4, icon:'👑', title:'青7番 フィニッシュ型', trait:SPECIAL_TRAITS[6] },
+    { id:'b1', kind:'badge', rarity:1, icon:'🧦', title:'ラッキーソックス',     desc:'チャンス初期値 +1', bonus:1 },
+    { id:'b2', kind:'badge', rarity:1, icon:'🥤', title:'スポーツドリンク',     desc:'チャンス初期値 +1', bonus:1 },
+    { id:'b3', kind:'badge', rarity:2, icon:'👟', title:'金のスパイク',         desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b4', kind:'badge', rarity:2, icon:'🧤', title:'キーパーグローブ',     desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b5', kind:'badge', rarity:2, icon:'📣', title:'おうえんメガホン',     desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b6', kind:'badge', rarity:3, icon:'🏆', title:'ピカピカトロフィー',   desc:'チャンス初期値 +3', bonus:3 },
+    { id:'b7', kind:'badge', rarity:3, icon:'🎺', title:'ファンファーレラッパ', desc:'チャンス初期値 +3', bonus:3 },
+    { id:'b8', kind:'badge', rarity:4, icon:'🌈', title:'にじいろボール',       desc:'チャンス初期値 +5', bonus:5 },
+    { id:'b9', kind:'badge', rarity:4, icon:'🎖️', title:'キャプテンマーク',     desc:'チャンス初期値 +5', bonus:5 }
 ];
-const PROGRESS_KEY = 'soccerPuzzleCoachProgressV1';
+const MAX_CARD_LEVEL = 5;
+const PITY_MAX = 5;
+const PROGRESS_KEY = 'soccerPuzzleCoachProgressV2';
+const PROGRESS_KEY_V1 = 'soccerPuzzleCoachProgressV1';
 let players = [];
 let level = 1;
 let goals = 0;
 let progress = loadProgress();
 let totalClears = progress.totalClears;
-let unlockedSlots = progress.unlockedSlots;
-let duplicateBonus = progress.duplicateBonus || 0;
+
+function cardCount(id) {
+    return progress.cards[id] || 0;
+}
+
+function cardLevel(id) {
+    return Math.min(MAX_CARD_LEVEL, cardCount(id));
+}
+
+function ownedKinds() {
+    return CARDS.filter(c => cardCount(c.id) > 0).length;
+}
+
+function collectionBonus() {
+    let sum = 0;
+    for(const c of CARDS) {
+        if(c.kind !== 'badge') continue;
+        const lv = cardLevel(c.id);
+        if(lv <= 0) continue;
+        sum += c.bonus + (lv - 1) * 0.5;
+    }
+    if(ownedKinds() >= CARDS.length) sum += 4;
+    return Math.min(16, Math.round(sum));
+}
 
 function buildPlayers() {
     players = [];
@@ -347,70 +603,296 @@ function buildPlayers() {
 
 function loadProgress() {
     try {
-        const raw = window.localStorage ? window.localStorage.getItem(PROGRESS_KEY) : null;
-        const data = raw ? JSON.parse(raw) : {};
-        const total = Number.isFinite(data.totalClears) ? Math.max(0, data.totalClears) : 0;
-        let slots = Array.isArray(data.unlockedSlots) ? data.unlockedSlots.filter(n => Number.isInteger(n)) : [];
-        if(slots.length === 0 && total > 0) {
-            slots = GACHA_POOL.filter((_, i) => i < Math.min(total, GACHA_POOL.length)).map(r => r.slot);
+        const store = window.localStorage;
+        const raw = store ? store.getItem(PROGRESS_KEY) : null;
+        if(raw) {
+            const data = JSON.parse(raw);
+            return {
+                totalClears: Number.isFinite(data.totalClears) ? Math.max(0, data.totalClears) : 0,
+                cards: (data.cards && typeof data.cards === 'object') ? data.cards : {},
+                pity: Number.isFinite(data.pity) ? Math.max(0, Math.min(PITY_MAX, data.pity)) : 0,
+                xp: Number.isFinite(data.xp) ? Math.max(0, data.xp) : 0,
+                bestStreak: Number.isFinite(data.bestStreak) ? Math.max(0, data.bestStreak) : 0,
+                ach: Array.isArray(data.ach) ? data.ach.filter(s => typeof s === 'string') : [],
+                muted: !!data.muted
+            };
         }
-        return {
-            totalClears: total,
-            unlockedSlots: Array.from(new Set(slots)),
-            duplicateBonus: Number.isFinite(data.duplicateBonus) ? Math.max(0, data.duplicateBonus) : 0
-        };
+        // v1からの引き継ぎ: 解放済みスロットをカード所持に変換（XP・実績も移行）
+        const rawV1 = store ? store.getItem(PROGRESS_KEY_V1) : null;
+        if(rawV1) {
+            const v1 = JSON.parse(rawV1);
+            const cards = {};
+            const slots = Array.isArray(v1.unlockedSlots) ? v1.unlockedSlots : [];
+            for(const s of slots) {
+                const card = CARDS.find(c => c.kind === 'player' && c.slot === s);
+                if(card) cards[card.id] = 1;
+            }
+            return {
+                totalClears: Number.isFinite(v1.totalClears) ? Math.max(0, v1.totalClears) : 0,
+                cards,
+                pity: 0,
+                xp: Number.isFinite(v1.xp) ? Math.max(0, v1.xp) : 0,
+                bestStreak: Number.isFinite(v1.bestStreak) ? Math.max(0, v1.bestStreak) : 0,
+                ach: Array.isArray(v1.ach) ? v1.ach.filter(s => typeof s === 'string') : [],
+                muted: !!v1.muted
+            };
+        }
+        return { totalClears:0, cards:{}, pity:0, xp:0, bestStreak:0, ach:[], muted:false };
     }
     catch(err) {
-        return { totalClears:0, unlockedSlots:[], duplicateBonus:0 };
+        return { totalClears:0, cards:{}, pity:0, xp:0, bestStreak:0, ach:[], muted:false };
     }
 }
 
 function saveProgress() {
     try {
         if(window.localStorage) {
-            window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ totalClears, unlockedSlots, duplicateBonus }));
+            progress.totalClears = totalClears;
+            window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
         }
     }
     catch(err) {}
 }
 
-function playerTrait(index) {
-    let trait = BASE_TRAIT;
-    const recruit = GACHA_POOL.find(r => r.slot === index);
-    if(recruit && unlockedSlots.includes(index)) {
-        trait = recruit.trait;
+/* ===== サウンド (WebAudio) ===== */
+const sfx = (() => {
+    let ac = null;
+    let muted = !!progress.muted;
+    function audio() {
+        if(!ac) {
+            try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+        }
+        if(ac && ac.state === 'suspended') ac.resume();
+        return ac;
     }
-    return trait;
+    function tone(f, t, dur, type, vol, slide) {
+        const a = audio();
+        if(!a || muted) return;
+        const o = a.createOscillator();
+        const g = a.createGain();
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(f, a.currentTime + t);
+        if(slide) o.frequency.exponentialRampToValueAtTime(slide, a.currentTime + t + dur);
+        g.gain.setValueAtTime(0.0001, a.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(vol || 0.10, a.currentTime + t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + t + dur);
+        o.connect(g);
+        g.connect(a.destination);
+        o.start(a.currentTime + t);
+        o.stop(a.currentTime + t + dur + 0.05);
+    }
+    return {
+        toggle() { muted = !muted; progress.muted = muted; saveProgress(); return muted; },
+        isMuted() { return muted; },
+        unlock() { audio(); },
+        tap()   { tone(420, 0, 0.06, 'triangle', 0.06); },
+        pass()  { tone(300, 0, 0.09, 'triangle', 0.09, 520); },
+        good()  { tone(523, 0, 0.10, 'triangle', 0.09); tone(784, 0.09, 0.14, 'triangle', 0.09); },
+        great() { tone(523, 0, 0.09, 'square', 0.05); tone(659, 0.08, 0.09, 'square', 0.05); tone(880, 0.16, 0.20, 'square', 0.06); },
+        lost()  { tone(220, 0, 0.18, 'sawtooth', 0.07, 110); },
+        goal()  { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.22, 'triangle', 0.11)); },
+        gacha(rar) {
+            tone(700, 0, 0.10, 'sine', 0.07, 1500);
+            if(rar >= 2) tone(1047, 0.28, 0.22, 'triangle', 0.09);
+            if(rar >= 3) { tone(1319, 0.40, 0.26, 'triangle', 0.10); tone(1568, 0.52, 0.30, 'triangle', 0.10); }
+            if(rar >= 4) {
+                [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, 0.70 + i * 0.10, 0.30, 'triangle', 0.11));
+                tone(523, 0.70, 0.7, 'sine', 0.06);
+            }
+        }
+    };
+})();
+
+/* ===== コーチランク (XP) ===== */
+const RANKS = [
+    { need:0,    name:'ビギナーコーチ' },
+    { need:60,   name:'ユースコーチ' },
+    { need:150,  name:'戦術家' },
+    { need:280,  name:'キャプテン' },
+    { need:460,  name:'エースメーカー' },
+    { need:700,  name:'マエストロ' },
+    { need:1000, name:'レジェンド' }
+];
+function rankIndex() {
+    let i = 0;
+    for(let k = 0; k < RANKS.length; k++) {
+        if(progress.xp >= RANKS[k].need) i = k;
+    }
+    return i;
+}
+function rankName() { return RANKS[rankIndex()].name; }
+function nextRankNeed() {
+    const i = rankIndex();
+    return i >= RANKS.length - 1 ? null : RANKS[i + 1].need;
+}
+let lastXpGain = 0;
+function gainXp(n) {
+    const before = rankIndex();
+    progress.xp += n;
+    lastXpGain = n;
+    const after = rankIndex();
+    saveProgress();
+    if(after > before) {
+        showToast('🎖 ランクアップ! ' + RANKS[after].name);
+        sfx.great();
+    }
+}
+
+/* ===== トースト通知 ===== */
+const toastEl = document.getElementById('toast');
+const toastQueue = [];
+let toastBusy = false;
+function showToast(text) {
+    toastQueue.push(text);
+    if(!toastBusy) nextToast();
+}
+function nextToast() {
+    const t = toastQueue.shift();
+    if(t === undefined) { toastBusy = false; return; }
+    toastBusy = true;
+    toastEl.textContent = t;
+    toastEl.classList.add('show');
+    setTimeout(() => {
+        toastEl.classList.remove('show');
+        setTimeout(nextToast, 340);
+    }, 2100);
+}
+
+/* ===== 実績 ===== */
+const ACHIEVEMENTS = [
+    { id:'first',    name:'初ゴール!' },
+    { id:'star3',    name:'★3パーフェクトクリア' },
+    { id:'combo3',   name:'3連続ナイス判断' },
+    { id:'streak3',  name:'3連勝ストリーク' },
+    { id:'streak5',  name:'5連勝ストリーク' },
+    { id:'clears10', name:'通算10ゴール' },
+    { id:'clears25', name:'通算25ゴール' },
+    { id:'ur',       name:'UR引き当て!' },
+    { id:'squad',    name:'スカッド7人結成' },
+    { id:'complete', name:'図鑑コンプリート!' }
+];
+function unlockAch(id) {
+    if(progress.ach.includes(id)) return;
+    const a = ACHIEVEMENTS.find(x => x.id === id);
+    if(!a) return;
+    progress.ach.push(id);
+    saveProgress();
+    showToast('🏆 実績解除: ' + a.name);
+}
+function checkAchievements() {
+    if(totalClears >= 1) unlockAch('first');
+    if(totalClears >= 10) unlockAch('clears10');
+    if(totalClears >= 25) unlockAch('clears25');
+    if(starsEarned >= 3) unlockAch('star3');
+    if(combo >= 3) unlockAch('combo3');
+    if(streak >= 3) unlockAch('streak3');
+    if(streak >= 5) unlockAch('streak5');
+    if(CARDS.filter(c => c.kind === 'player' && cardCount(c.id) > 0).length >= 7) unlockAch('squad');
+    if(ownedKinds() >= CARDS.length) unlockAch('complete');
+}
+
+/* ===== 紙吹雪・画面シェイク ===== */
+const confetti = [];
+let shake = 0;
+let tick = 0;
+function burstConfetti(x, y, n, palette) {
+    const colors = palette || ['#d6ff3f', '#ffd23f', '#4d8dff', '#ff5470', '#ffffff', '#8bd3ff'];
+    for(let i = 0; i < n; i++) {
+        confetti.push({
+            x, y,
+            vx:(Math.random() - 0.5) * 10,
+            vy:-Math.random() * 8.5 - 3,
+            g:0.26,
+            life:70 + Math.random() * 50,
+            maxLife:120,
+            color:colors[i % colors.length],
+            s:3 + Math.random() * 4.5,
+            rot:Math.random() * Math.PI,
+            vr:(Math.random() - 0.5) * 0.34
+        });
+    }
+    if(confetti.length > 320) confetti.splice(0, confetti.length - 320);
+}
+function updateConfetti() {
+    for(let i = confetti.length - 1; i >= 0; i--) {
+        const c = confetti[i];
+        c.vy += c.g;
+        c.x += c.vx;
+        c.y += c.vy;
+        c.vx *= 0.985;
+        c.rot += c.vr;
+        c.life--;
+        if(c.life <= 0 || c.y > H + 30) confetti.splice(i, 1);
+    }
+}
+function drawConfetti() {
+    if(!confetti.length) return;
+    ctx.save();
+    for(const c of confetti) {
+        ctx.globalAlpha = clamp(c.life / 38, 0, 1);
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rot);
+        ctx.fillStyle = c.color;
+        ctx.fillRect(-c.s / 2, -c.s / 2, c.s, c.s * 0.62);
+        ctx.rotate(-c.rot);
+        ctx.translate(-c.x, -c.y);
+    }
+    ctx.restore();
+}
+
+function playerTrait(index) {
+    const card = CARDS.find(c => c.kind === 'player' && c.slot === index);
+    if(!card || cardCount(card.id) <= 0) return BASE_TRAIT;
+    const lv = cardLevel(card.id);
+    const boost = 1 + (lv - 1) * 0.03;
+    const t = card.trait;
+    return {
+        name: t.name + (lv > 1 ? ' Lv' + lv : ''),
+        desc: t.desc,
+        dribble: t.dribble >= 1 ? t.dribble * boost : t.dribble,
+        keep: t.keep,
+        pass: t.pass >= 1 ? t.pass * boost : t.pass,
+        speed: t.speed >= 1 ? t.speed * boost : t.speed,
+        finish: t.finish >= 1 ? t.finish * boost : t.finish
+    };
 }
 
 function drawGachaReward() {
-    const locked = GACHA_POOL.filter(r => !unlockedSlots.includes(r.slot));
-    const pool = locked.length ? locked : GACHA_POOL;
-    const totalWeight = pool.reduce((sum, r) => sum + r.weight, 0);
-    let roll = Math.random() * totalWeight;
-    let picked = pool[pool.length - 1];
-    for(const r of pool) {
-        roll -= r.weight;
-        if(roll <= 0) {
-            picked = r;
-            break;
-        }
+    const pityHit = progress.pity >= PITY_MAX;
+    let pool = pityHit ? CARDS.filter(c => c.rarity >= 3) : CARDS;
+
+    // レア度を抽選
+    const rarities = Array.from(new Set(pool.map(c => c.rarity)));
+    const totalW = rarities.reduce((s, r) => s + RARITIES[r].weight, 0);
+    let roll = Math.random() * totalW;
+    let rarity = rarities[rarities.length - 1];
+    for(const r of rarities) {
+        roll -= RARITIES[r].weight;
+        if(roll <= 0) { rarity = r; break; }
     }
-    const isNew = !unlockedSlots.includes(picked.slot);
-    if(isNew) {
-        unlockedSlots.push(picked.slot);
-    }
-    else {
-        duplicateBonus++;
-    }
+
+    // 同レア度の中では未所持を優先
+    let candidates = pool.filter(c => c.rarity === rarity);
+    const fresh = candidates.filter(c => cardCount(c.id) === 0);
+    if(fresh.length) candidates = fresh;
+    const picked = candidates[Math.floor(Math.random() * candidates.length)];
+
+    const isNew = cardCount(picked.id) === 0;
+    progress.cards[picked.id] = cardCount(picked.id) + 1;
+    const lv = cardLevel(picked.id);
+
+    if(picked.rarity >= 3) progress.pity = 0;
+    else progress.pity = Math.min(PITY_MAX, progress.pity + 1);
+
     saveProgress();
-    return { ...picked, isNew };
+    refreshZukan();
+    return { ...picked, isNew, level: lv, pityHit };
 }
 
 function nextRecruitText() {
-    const remain = GACHA_POOL.length - unlockedSlots.length;
-    if(remain <= 0) return '全特徴解放済み / 重複でチャンス初期値アップ';
-    return 'ごほうびガチャ: 未加入あと' + remain + '人';
+    const gauge = '✦'.repeat(progress.pity) + '✧'.repeat(Math.max(0, PITY_MAX - progress.pity));
+    if(progress.pity >= PITY_MAX) return '図鑑 ' + ownedKinds() + '/' + CARDS.length + ' · 次SR以上確定!';
+    return '図鑑 ' + ownedKinds() + '/' + CARDS.length + ' ' + gauge;
 }
 
 function levelSetup() {
@@ -454,6 +936,8 @@ let hintUsed = false;
 let puzzleMessage = '';
 let lastGachaReward = null;
 let gachaAnim = 0;
+let gachaAnimTotal = 110;
+let streak = 0;
 const effects = [];
 const history = [];
 
@@ -1060,6 +1544,9 @@ function rewardPass(from, to, evalObj) {
     }
     turnCount++;
     changeChance(gain, text, to.x, to.y - R * 2.5);
+    if(evalObj.mark === '◎' || gain >= 15) sfx.great();
+    else if(gain >= 8) sfx.good();
+    checkAchievements();
 }
 
 function rewardDribble(holder) {
@@ -1078,6 +1565,10 @@ function rewardDribble(holder) {
 
 function rewardLoss(x, y) {
     combo = 0;
+    if(streak >= 2) showToast('💔 連勝ストップ… ' + streak + '連勝で終了');
+    streak = 0;
+    shake = 9;
+    sfx.lost();
     changeChance(-16, '奪われた', x, y - R * 2);
 }
 
@@ -1128,6 +1619,7 @@ function doShoot() {
         {
             caption: shooter.num + '番がシュート!',
             prep:() => {
+                sfx.pass();
                 ballFlight = true;
                 ball.tx = fX0 + fW / 2;
                 ball.ty = fY0 + R * 0.5;
@@ -1170,7 +1662,8 @@ function goalScored(shooter) {
     totalClears++;
     const reward = drawGachaReward();
     lastGachaReward = reward;
-    gachaAnim = 96;
+    gachaAnim = RARITIES[reward.rarity].anim;
+    gachaAnimTotal = gachaAnim;
     starsEarned = starRating();
     combo = 0;
     phase = 'clear';
@@ -1178,14 +1671,32 @@ function goalScored(shooter) {
     arrows = [];
     ballFlight = false;
     history.length = 0;
+
+    streak++;
+    if(streak > progress.bestStreak) progress.bestStreak = streak;
+    const xpGain = 12 + starsEarned * 8 + (hintUsed ? 0 : 6) + Math.min(10, streak * 2) + reward.rarity * 2;
+    gainXp(xpGain);
+    shake = 13;
+    const confN = reward.rarity === 4 ? 170 : reward.rarity === 3 ? 130 : reward.rarity === 2 ? 90 : 70;
+    const confColors = reward.rarity === 4
+        ? ['#ff7ab8', '#ffd23f', '#7df0a8', '#7fd4ff', '#cf8bff', '#ffffff']
+        : reward.rarity === 3
+            ? ['#cf8bff', '#ffd23f', '#ffffff', '#d6ff3f']
+            : null;
+    burstConfetti(fX0 + fW / 2, fY0 + fH * 0.26, confN, confColors);
+    sfx.goal();
+    setTimeout(() => sfx.gacha(reward.rarity), 480);
+    if(reward.rarity >= 4) unlockAch('ur');
+    checkAchievements();
+
     restState();
-    addTextEffect('GOAL!', fX0 + fW / 2, fY0 + fH * 0.18, '#ffd23f');
-    addTextEffect(reward.isNew ? 'NEW!' : 'BONUS', fX0 + fW / 2, fY0 + fH * 0.27, reward.isNew ? '#8bd3ff' : '#ffd23f');
+    addTextEffect('GOAL!', fX0 + fW / 2, fY0 + fH * 0.18, '#d6ff3f');
     puzzleMessage = starText(starsEarned) + ' クリア';
+    const rar = RARITIES[reward.rarity];
     const rewardText = reward.isNew
-        ? '<br><span class="hint">ごほうびガチャ: ' + reward.title + 'が加入！ 次の課題から使えます。</span>'
-        : '<br><span class="hint">ごほうびガチャ: ' + reward.title + 'は重複。ボーナスで次回以降のチャンス初期値が少し上がります。</span>';
-    setFeedback('◎', 'クリア！ ' + shooter.num + '番が良い位置で前を向けたね。<br><span class="hint">' + starText(starsEarned) + ' / 手数 ' + turnCount + ' / チャンス ' + Math.round(chance) + '%。総クリア ' + totalClears + '。</span>' + rewardText);
+        ? '<br><span class="hint">ガチャ結果: ' + rar.stars + ' ' + reward.title + ' が図鑑に登録！' + (reward.kind === 'player' ? ' 次の課題から使えます。' : '') + '</span>'
+        : '<br><span class="hint">ガチャ結果: ' + rar.stars + ' ' + reward.title + ' が Lv' + reward.level + ' にパワーアップ！</span>';
+    setFeedback('◎', 'クリア！ ' + shooter.num + '番が良い位置で前を向けたね。<br><span class="hint">' + starText(starsEarned) + ' / XP +' + xpGain + ' / 連勝 ' + streak + ' / 手数 ' + turnCount + ' / チャンス ' + Math.round(chance) + '%。総クリア ' + totalClears + '。</span>' + rewardText);
 }
 
 function nextLevel() {
@@ -1198,7 +1709,7 @@ function nextLevel() {
     puzzleMessage = '';
     lastGachaReward = null;
     gachaAnim = 0;
-    reset(24 + Math.min(12, level * 2) + Math.min(10, duplicateBonus * 2));
+    reset(24 + Math.min(12, level * 2) + collectionBonus());
 }
 
 function retryLevel() {
@@ -1208,7 +1719,7 @@ function retryLevel() {
     puzzleMessage = '';
     lastGachaReward = null;
     gachaAnim = 0;
-    reset(24);
+    reset(24 + collectionBonus());
 }
 
 function snapshot() {
@@ -1261,7 +1772,7 @@ function reset(startChance) {
     arrows = [];
     busy = false;
     ballFlight = false;
-    chance = typeof startChance === 'number' ? startChance : 24;
+    chance = typeof startChance === 'number' ? startChance : 24 + collectionBonus();
     turnCount = 0;
     combo = 0;
     hintUsed = false;
@@ -1431,6 +1942,7 @@ function releasePass() {
         {
             caption: intc ? 'パス...' : 'パス!',
             prep:() => {
+                sfx.pass();
                 ballFlight = true;
                 const dest = intc ? intc : to;
                 ball.tx = dest.x;
@@ -1612,8 +2124,8 @@ function restState() {
     clearbar.style.display = phase === 'clear' ? 'flex' : 'none';
     statusEl.className = ({you:'you', ask:'ask', lost:'lost', clear:'clear'})[phase] || 'you';
     if(phase === 'you') {
-        const holderTrait = ball.holder && ball.holder.trait ? ' / 特徴: ' + ball.holder.trait.name + ' - ' + ball.holder.trait.desc : '';
-        statusEl.innerHTML = currentLevelName() + ' / 青' + (ball.holder ? ball.holder.num : '') + '番<small>★条件: 高いチャンス・良い判断・ヒントなし' + holderTrait + ' / 総クリア ' + totalClears + ' / 加入 ' + unlockedSlots.length + '/' + GACHA_POOL.length + ' / 難易度: ' + activeDifficulty().label + '</small>';
+        const holderTrait = ball.holder && ball.holder.trait && ball.holder.trait.name !== '標準' ? ' / ' + ball.holder.trait.name : '';
+        statusEl.innerHTML = currentLevelName() + ' / 青' + (ball.holder ? ball.holder.num : '') + '番' + holderTrait + '<small>🎖 ' + rankName() + ' · 連勝 ' + streak + ' (ベスト' + progress.bestStreak + ') · 図鑑 ' + ownedKinds() + '/' + CARDS.length + ' · 実績 ' + progress.ach.length + '/' + ACHIEVEMENTS.length + ' · ' + activeDifficulty().label + '</small>';
     }
     else if(phase === 'ask') {
         statusEl.innerHTML = (aiming ? aiming.num : '') + '番へ出す？<small>コースが通っていれば「出す」、消されていたら「やめる」</small>';
@@ -1622,7 +2134,7 @@ function restState() {
         statusEl.innerHTML = 'ボールロスト<small>「1手戻す」か「リセット」で、別の判断を試そう</small>';
     }
     else if(phase === 'clear') {
-        statusEl.innerHTML = '課題クリア！ ' + starText(starsEarned) + '<small>手数 ' + turnCount + ' / チャンス ' + Math.round(chance) + '% / 次の課題へ進もう</small>';
+        statusEl.innerHTML = '課題クリア！ ' + starText(starsEarned) + '<small>XP +' + lastXpGain + ' / 連勝 ' + streak + ' / 手数 ' + turnCount + ' / チャンス ' + Math.round(chance) + '% / 次の課題へ進もう</small>';
     }
 }
 
@@ -1646,24 +2158,51 @@ function setFeedback2(o, from, to) {
 }
 function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
+function roundRectPath(x, y, w, h, r) {
+    ctx.beginPath();
+    if(ctx.roundRect) {
+        ctx.roundRect(x, y, w, h, r);
+        return;
+    }
+    r = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
 function drawField() {
-    ctx.fillStyle = getCSS('--pitch');
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0e2317');
+    bg.addColorStop(1, '#06100b');
+    ctx.fillStyle = bg;
+    ctx.fillRect(-30, -30, W + 60, H + 60);
+
+    ctx.save();
+    roundRectPath(fX0 - 6, fY0 - 6, fW + 12, fH + 12, 18);
+    const pg = ctx.createRadialGradient(
+        fX0 + fW / 2, fY0 + fH * 0.16, 12,
+        fX0 + fW / 2, fY0 + fH * 0.52, Math.max(fW, fH) * 0.92
+    );
+    pg.addColorStop(0, '#1f5b39');
+    pg.addColorStop(0.55, '#16432b');
+    pg.addColorStop(1, '#0d2c1c');
+    ctx.fillStyle = pg;
+    ctx.fill();
+    ctx.clip();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.045)';
     const n = 8;
     const sh = fH / n;
     for(let i = 0; i < n; i += 2) {
-        ctx.fillRect(fX0, fY0 + i * sh, fW, sh);
+        ctx.fillRect(fX0 - 6, fY0 + i * sh, fW + 12, sh);
     }
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.lineWidth = 2.5;
+
+    ctx.strokeStyle = 'rgba(235,255,242,0.62)';
+    ctx.lineWidth = 2;
     ctx.strokeRect(fX0, fY0, fW, fH);
-    ctx.fillStyle = 'rgba(255,255,255,0.20)';
-    ctx.fillRect(fX0 + fW * 0.36, fY0 - 4, fW * 0.28, 8);
-    ctx.fillStyle = 'rgba(255,255,255,0.86)';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('GOAL', fX0 + fW / 2, fY0 + 31);
     ctx.beginPath();
     ctx.moveTo(fX0, fY0 + fH / 2);
     ctx.lineTo(fX1, fY0 + fH / 2);
@@ -1671,26 +2210,51 @@ function drawField() {
     ctx.beginPath();
     ctx.arc(fX0 + fW / 2, fY0 + fH / 2, Math.min(fW, fH) * 0.11, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(fX0 + fW / 2, fY0 + fH / 2, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(235,255,242,0.62)';
+    ctx.fill();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.font = 'bold 12px sans-serif';
+    const pbW = fW * 0.46;
+    const pbH = fH * 0.135;
+    ctx.strokeRect(fX0 + fW / 2 - pbW / 2, fY0, pbW, pbH);
+    const gaW = fW * 0.22;
+    const gaH = fH * 0.055;
+    ctx.strokeRect(fX0 + fW / 2 - gaW / 2, fY0, gaW, gaH);
+
+    ctx.restore();
+
+    const volt = getCSS('--volt') || '#d6ff3f';
+    ctx.save();
+    ctx.shadowColor = 'rgba(214,255,63,0.85)';
+    ctx.shadowBlur = 14 + Math.sin(tick * 0.06) * 4;
+    roundRectPath(fX0 + fW * 0.36, fY0 - 5, fW * 0.28, 8, 4);
+    ctx.fillStyle = volt;
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(214,255,63,0.92)';
+    ctx.font = '900 11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('▲ 青が攻める方向', fX0 + fW / 2, fY0 + 15);
+    ctx.fillText('GOAL', fX0 + fW / 2, fY0 + 16);
+
+    ctx.fillStyle = 'rgba(235,255,242,0.45)';
+    ctx.font = 'bold 10.5px sans-serif';
+    ctx.fillText('▲ 青が攻める方向', fX0 + fW / 2, fY0 + fH * 0.135 + 16);
 
     ctx.textAlign = 'left';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 11px sans-serif';
     ctx.fillStyle = getCSS('--blue');
     ctx.beginPath();
-    ctx.arc(fX0 + 12, fY0 + fH - 14, 6, 0, Math.PI * 2);
+    ctx.arc(fX0 + 14, fY0 + 17, 5.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.fillText('味方', fX0 + 22, fY0 + fH - 10);
+    ctx.fillStyle = 'rgba(242,251,244,0.80)';
+    ctx.fillText('味方', fX0 + 23, fY0 + 21);
     ctx.fillStyle = getCSS('--red');
     ctx.beginPath();
-    ctx.arc(fX0 + 78, fY0 + fH - 14, 6, 0, Math.PI * 2);
+    ctx.arc(fX0 + 70, fY0 + 17, 5.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.fillText('相手', fX0 + 88, fY0 + fH - 10);
+    ctx.fillStyle = 'rgba(242,251,244,0.80)';
+    ctx.fillText('相手', fX0 + 79, fY0 + 21);
 }
 
 function drawArrow(a) {
@@ -1760,109 +2324,187 @@ function drawAim() {
 
 function drawPlayer(p) {
     const isHolder = p === ball.holder;
+
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + R * 0.74, R * 0.92, R * 0.36, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.34)';
+    ctx.fill();
+
     if(isHolder) {
+        const pr = R + 7 + Math.sin(tick * 0.12) * 2.4;
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(p.x, p.y, R + 8, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,210,63,0.28)';
-        ctx.fill();
+        ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(214,255,63,0.88)';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = 'rgba(214,255,63,0.85)';
+        ctx.shadowBlur = 14;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    const g = ctx.createRadialGradient(p.x - R * 0.35, p.y - R * 0.42, R * 0.18, p.x, p.y, R * 1.08);
+    if(p.team === 'blue') {
+        g.addColorStop(0, '#82b3ff');
+        g.addColorStop(1, '#2453c4');
+    }
+    else {
+        g.addColorStop(0, '#ff8aa0');
+        g.addColorStop(1, '#c42247');
     }
     ctx.beginPath();
     ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
-    ctx.fillStyle = p.team === 'blue' ? getCSS('--blue') : getCSS('--red');
+    ctx.fillStyle = g;
     ctx.fill();
-    ctx.lineWidth = isHolder ? 4 : 2;
-    ctx.strokeStyle = isHolder ? '#fff' : 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = isHolder ? 3 : 1.5;
+    ctx.strokeStyle = isHolder ? '#ffffff' : 'rgba(255,255,255,0.36)';
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold ' + Math.round(R * 1.05) + 'px sans-serif';
+    ctx.font = '900 ' + Math.round(R * 1.02) + 'px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 3;
     ctx.fillText(p.num, p.x, p.y + 0.5);
+    ctx.shadowBlur = 0;
     ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = 'rgba(255,255,255,0.84)';
+
+    const special = traitName(p);
+    const label = p.role + (special ? ' ' + special : '');
     ctx.font = 'bold 9px sans-serif';
-    const label = p.role + (traitName(p) ? ' ' + traitName(p) : '');
-    ctx.fillText(label, p.x, p.y + R + 11, R * 4.7);
+    const lw = ctx.measureText(label).width + 10;
+    roundRectPath(p.x - lw / 2, p.y + R + 3, lw, 13, 6.5);
+    ctx.fillStyle = special ? 'rgba(214,255,63,0.92)' : 'rgba(0,0,0,0.46)';
+    ctx.fill();
+    ctx.fillStyle = special ? '#11200f' : 'rgba(255,255,255,0.88)';
+    ctx.fillText(label, p.x, p.y + R + 12.5);
 
     if(isHolder) {
-        ctx.fillStyle = getCSS('--accent');
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText('ボール', p.x, p.y - R - 10);
+        ctx.fillStyle = getCSS('--volt');
+        ctx.font = '900 11.5px sans-serif';
+        ctx.fillText('BALL', p.x, p.y - R - 12);
     }
 }
 
 function drawRewardHud() {
-    const top = fY0 + 38;
+    const top = fY0 - 64;
     const x = fX0 + 12;
     const w = Math.min(fW - 24, 360);
-    const h = 16;
+    const h = 13;
     const fill = w * chance / 100;
     const glow = pulse * 10;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.42)';
-    ctx.fillRect(x - 2, top - 20, w + 4, 64);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px sans-serif';
+    roundRectPath(x - 8, top - 22, w + 16, 74, 12);
+    ctx.fillStyle = 'rgba(4,12,8,0.55)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(242,251,244,0.95)';
+    ctx.font = '900 12px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(currentMission(), x, top - 6, w);
-    ctx.fillStyle = 'rgba(255,255,255,0.80)';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.fillText(nextRecruitText(), x, top + 31, w);
+    ctx.fillText(currentMission(), x, top - 7, w);
+
     if(level > LEVELS.length) {
         ctx.textAlign = 'right';
-        ctx.fillStyle = 'rgba(255,255,255,0.78)';
-        ctx.fillText('配置変化 +' + Math.floor((level - 1) / LEVELS.length), x + w, top - 6);
+        ctx.fillStyle = 'rgba(214,255,63,0.78)';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillText('配置変化 +' + Math.floor((level - 1) / LEVELS.length), x + w, top - 7);
+        ctx.textAlign = 'left';
     }
 
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.fillRect(x, top + 2, w, h);
-    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
-    grad.addColorStop(0, '#8bd3ff');
-    grad.addColorStop(0.55, '#ffd23f');
-    grad.addColorStop(1, '#ff8f5a');
-    ctx.fillStyle = grad;
-    ctx.shadowColor = 'rgba(255,210,63,0.75)';
-    ctx.shadowBlur = 4 + glow;
-    ctx.fillRect(x, top + 2, fill, h);
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,0.72)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(x, top + 2, w, h);
+    roundRectPath(x, top + 1, w, h, h / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    ctx.fill();
+    if(fill > h) {
+        ctx.save();
+        roundRectPath(x, top + 1, fill, h, h / 2);
+        ctx.clip();
+        const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+        grad.addColorStop(0, '#4d8dff');
+        grad.addColorStop(0.55, '#d6ff3f');
+        grad.addColorStop(1, '#ffd23f');
+        ctx.fillStyle = grad;
+        ctx.shadowColor = 'rgba(214,255,63,0.75)';
+        ctx.shadowBlur = 5 + glow;
+        ctx.fillRect(x, top + 1, fill, h);
+        ctx.shadowBlur = 0;
+        const sx = x + ((tick * 2.2) % (w + 80)) - 40;
+        const shimmer = ctx.createLinearGradient(sx, 0, sx + 46, 0);
+        shimmer.addColorStop(0, 'rgba(255,255,255,0)');
+        shimmer.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+        shimmer.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = shimmer;
+        ctx.fillRect(x, top + 1, fill, h);
+        ctx.restore();
+    }
+    roundRectPath(x, top + 1, w, h, h / 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 11px sans-serif';
+    ctx.font = '900 10.5px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText('チャンス ' + Math.round(chance) + '%', x + w - 4, top + 15);
+    ctx.fillText('チャンス ' + Math.round(chance) + '%', x + w, top + 26);
     ctx.textAlign = 'left';
-    ctx.fillText('手数 ' + turnCount + (hintUsed ? ' / ヒント使用' : ' / ノーヒント'), x + 4, top + 15);
+    let leftLine = '手数 ' + turnCount;
+    if(combo >= 2) leftLine += ' · 🔥COMBO x' + combo;
+    else leftLine += (hintUsed ? ' · ヒント使用' : ' · ノーヒント');
+    ctx.fillStyle = combo >= 2 ? 'rgba(255,210,63,0.96)' : 'rgba(255,255,255,0.85)';
+    ctx.fillText(leftLine, x, top + 26);
+
+    ctx.fillStyle = 'rgba(214,255,63,0.80)';
+    ctx.font = 'bold 10px sans-serif';
+    const next = nextRankNeed();
+    const xpLine = '🎖 ' + rankName() + ' · XP ' + progress.xp + (next ? '/' + next : '') +
+        ' · 連勝 ' + streak + (progress.bestStreak > 0 ? ' (ベスト' + progress.bestStreak + ')' : '');
+    ctx.fillText(xpLine, x, top + 41, w * 0.62);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.62)';
+    ctx.fillText(nextRecruitText(), x + w, top + 41, w * 0.36);
+    ctx.textAlign = 'left';
 
     if(chance >= 86) {
-        ctx.fillStyle = 'rgba(255,210,63,0.92)';
+        ctx.fillStyle = 'rgba(214,255,63,' + (0.72 + Math.sin(tick * 0.18) * 0.25) + ')';
         ctx.textAlign = 'center';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillText('チャンス!', fX0 + fW / 2, fY0 + 82);
+        ctx.font = '900 13px sans-serif';
+        ctx.fillText('⚡ チャンス!', fX0 + fW / 2, fY0 + 50);
     }
+    ctx.restore();
+}
 
-    if(phase === 'clear') {
+function drawClearPanel() {
+    if(phase !== 'clear') return;
+    ctx.save();
         const bw = Math.min(fW - 34, 330);
         const bx = fX0 + fW / 2 - bw / 2;
-        const by = fY0 + fH * 0.30;
-        ctx.fillStyle = 'rgba(0,0,0,0.66)';
-        ctx.fillRect(bx, by, bw, 92);
-        ctx.strokeStyle = 'rgba(255,210,63,0.85)';
+        const by = fY0 + fH * 0.26;
+        roundRectPath(bx, by, bw, 112, 16);
+        ctx.fillStyle = 'rgba(4,12,8,0.78)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(214,255,63,0.85)';
         ctx.lineWidth = 2;
-        ctx.strokeRect(bx, by, bw, 92);
-        ctx.fillStyle = '#ffd23f';
-        ctx.font = 'bold 24px sans-serif';
+        ctx.stroke();
+        ctx.fillStyle = '#d6ff3f';
+        ctx.font = 'italic 900 28px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('CLEAR!', fX0 + fW / 2, by + 32);
+        ctx.shadowColor = 'rgba(214,255,63,0.7)';
+        ctx.shadowBlur = 16;
+        ctx.fillText('GOAL!', fX0 + fW / 2, by + 36);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffd23f';
+        ctx.font = '900 21px sans-serif';
+        ctx.fillText(starText(starsEarned), fX0 + fW / 2, by + 63);
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillText(starText(starsEarned), fX0 + fW / 2, by + 58);
         ctx.font = 'bold 12px sans-serif';
-        ctx.fillText('次は相手の配置が変わります', fX0 + fW / 2, by + 78);
-    }
+        ctx.fillText('XP +' + lastXpGain + ' · 連勝 ' + streak, fX0 + fW / 2, by + 83);
+        ctx.fillStyle = 'rgba(255,255,255,0.70)';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('次は相手の配置が変わります', fX0 + fW / 2, by + 100);
     ctx.restore();
 }
 
@@ -1906,90 +2548,142 @@ function drawEffects() {
     ctx.restore();
 }
 
+function rarityGradient(x0, x1, t) {
+    const g = ctx.createLinearGradient(x0, 0, x1, 0);
+    const hue = (t * 220) % 360;
+    g.addColorStop(0, 'hsl(' + hue + ',92%,68%)');
+    g.addColorStop(0.5, 'hsl(' + ((hue + 90) % 360) + ',92%,68%)');
+    g.addColorStop(1, 'hsl(' + ((hue + 180) % 360) + ',92%,68%)');
+    return g;
+}
+
 function drawGachaAnimation() {
     if(phase !== 'clear' || !lastGachaReward || gachaAnim <= 0) return;
 
-    const t = 1 - gachaAnim / 96;
-    const reveal = clamp((t - 0.34) / 0.36, 0, 1);
+    const total = gachaAnimTotal || 110;
+    const t = 1 - gachaAnim / total;
+    const rarity = lastGachaReward.rarity;
+    const rar = RARITIES[rarity];
+    // 高レアほど「タメ」を長く
+    const revealAt = rarity >= 4 ? 0.55 : rarity === 3 ? 0.48 : 0.36;
+    const reveal = clamp((t - revealAt) / 0.22, 0, 1);
+    const wob = reveal < 1 ? Math.sin(t * Math.PI * (10 + rarity * 6)) * (rarity - reveal * rarity) * 1.6 : 0;
     const shine = Math.sin(t * Math.PI * 6) * 0.5 + 0.5;
-    const cx = fX0 + fW / 2;
-    const cy = fY0 + fH * 0.58;
-    const cardW = Math.min(260, fW * 0.68);
-    const cardH = 118;
-    const scale = 0.86 + reveal * 0.14;
+    const cx = fX0 + fW / 2 + wob;
+    const cy = fY0 + fH * 0.60;
+    const cardW = Math.min(270, fW * 0.70);
+    const cardH = 132;
+    const pop = reveal >= 1 ? 1 + Math.sin(Math.min(1, (t - revealAt - 0.22) * 5) * Math.PI) * 0.04 : 1;
+    const scale = (0.84 + reveal * 0.18) * pop;
     const x = cx - cardW * scale / 2;
     const y = cy - cardH * scale / 2;
 
     ctx.save();
-    ctx.globalAlpha = clamp(t / 0.18, 0, 1);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.globalAlpha = clamp(t / 0.15, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.46)';
     ctx.fillRect(fX0, fY0, fW, fH);
 
-    for(let i = 0; i < 10; i++) {
-        const ang = i / 10 * Math.PI * 2 + t * 2.5;
-        const r1 = 34 + reveal * 18;
-        const r2 = 118 + shine * 12;
-        ctx.strokeStyle = i % 2 ? 'rgba(255,210,63,0.42)' : 'rgba(139,211,255,0.36)';
-        ctx.lineWidth = 2;
+    // レア度オーラ（開封前からチラ見せ）
+    const auraColor = rarity === 4 ? null : rar.color;
+    const rays = 10 + rarity * 4;
+    for(let i = 0; i < rays; i++) {
+        const ang = i / rays * Math.PI * 2 + t * (2 + rarity);
+        const r1 = 36 + reveal * 22;
+        const r2 = 112 + shine * (14 + rarity * 8) + rarity * 12;
+        if(auraColor) {
+            ctx.strokeStyle = i % 2 ? auraColor : 'rgba(255,255,255,0.40)';
+        }
+        else {
+            ctx.strokeStyle = 'hsl(' + ((t * 360 + i * 36) % 360) + ',95%,70%)';
+        }
+        ctx.globalAlpha = 0.45 + shine * 0.30;
+        ctx.lineWidth = rarity >= 3 ? 3 : 2;
         ctx.beginPath();
         ctx.moveTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1);
         ctx.lineTo(cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2);
         ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // UR開封の瞬間は画面フラッシュ
+    if(rarity === 4 && reveal > 0 && reveal < 0.35) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.85 * (1 - reveal / 0.35)) + ')';
+        ctx.fillRect(-30, -30, W + 60, H + 60);
     }
 
     ctx.translate(cx, cy);
     ctx.scale(scale, scale);
     ctx.translate(-cx, -cy);
 
-    const frontColor = lastGachaReward.isNew ? '#8bd3ff' : '#ffd23f';
-    const backColor = '#1b2a32';
+    const opened = reveal >= 0.95;
+    const frameColor = rarity === 4 ? rarityGradient(x, x + cardW, t) : rar.color;
 
-    ctx.shadowColor = frontColor;
-    ctx.shadowBlur = 16 + shine * 12;
-    ctx.fillStyle = reveal < 0.95 ? backColor : frontColor;
-    ctx.fillRect(x, y, cardW, cardH);
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,0.92)';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(x, y, cardW, cardH);
-
-    if(reveal < 0.95) {
-        ctx.fillStyle = '#ffd23f';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('ごほうび', cx, cy - 10);
-        ctx.font = 'bold 30px sans-serif';
-        ctx.fillText('?', cx, cy + 28);
+    ctx.shadowColor = rarity === 4 ? '#ffffff' : rar.color;
+    ctx.shadowBlur = 14 + shine * (10 + rarity * 6);
+    roundRectPath(x, y, cardW, cardH, 18);
+    if(opened) {
+        const cg = ctx.createLinearGradient(x, y, x, y + cardH);
+        cg.addColorStop(0, '#ffffff');
+        cg.addColorStop(1, rarity === 4 ? '#fff6dc' : rar.color + '55');
+        ctx.fillStyle = cg;
     }
     else {
-        ctx.fillStyle = '#102016';
-        ctx.font = 'bold 18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(lastGachaReward.isNew ? 'NEW PLAYER' : 'BONUS', cx, y + 30);
-        ctx.font = 'bold 24px sans-serif';
-        ctx.fillText(lastGachaReward.title, cx, y + 66, cardW - 18);
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillText(lastGachaReward.trait.desc, cx, y + 92, cardW - 18);
+        ctx.fillStyle = '#16262e';
+    }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    roundRectPath(x, y, cardW, cardH, 18);
+    ctx.strokeStyle = frameColor;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    if(!opened) {
+        ctx.fillStyle = rarity >= 3 ? rar.color : '#d6ff3f';
+        ctx.font = '900 18px sans-serif';
+        ctx.fillText(lastGachaReward.pityHit ? 'キラキラ確定!' : 'ごほうびガチャ', cx, cy - 14);
+        ctx.font = '900 34px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.fillText('？', cx, cy + 26);
+    }
+    else {
+        ctx.fillStyle = rarity === 4 ? '#b8860b' : rar.color;
+        ctx.font = '900 15px sans-serif';
+        ctx.fillText(rar.stars + ' ' + rar.name + (lastGachaReward.isNew ? '  NEW!' : ''), cx, y + 24);
+        ctx.font = '900 30px sans-serif';
+        ctx.fillStyle = '#243042';
+        ctx.fillText(lastGachaReward.icon, cx, y + 58);
+        ctx.font = '900 19px sans-serif';
+        ctx.fillText(lastGachaReward.title, cx, y + 88, cardW - 20);
+        ctx.font = '700 12px sans-serif';
+        ctx.fillStyle = '#5a6b80';
+        const sub = lastGachaReward.isNew
+            ? (lastGachaReward.kind === 'player' ? lastGachaReward.trait.desc : lastGachaReward.desc)
+            : 'Lv' + lastGachaReward.level + ' にパワーアップ！';
+        ctx.fillText(sub, cx, y + 112, cardW - 20);
     }
 
     ctx.restore();
 }
 
 function draw() {
+    ctx.save();
+    if(shake > 0.3) {
+        ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    }
     drawField();
     if(chance > 55) {
         ctx.save();
-        const a = clamp((chance - 55) / 55, 0, 0.42);
+        const a = clamp((chance - 55) / 55, 0, 0.34);
         const grad = ctx.createLinearGradient(0, fY0, 0, fY0 + fH * 0.48);
-        grad.addColorStop(0, 'rgba(255,210,63,' + a + ')');
-        grad.addColorStop(1, 'rgba(255,210,63,0)');
+        grad.addColorStop(0, 'rgba(214,255,63,' + a + ')');
+        grad.addColorStop(1, 'rgba(214,255,63,0)');
         ctx.fillStyle = grad;
         ctx.fillRect(fX0, fY0, fW, fH * 0.5);
         ctx.restore();
     }
     drawRewardHud();
     drawEffects();
-    drawGachaAnimation();
     for(const a of arrows) drawArrow(a);
     drawAim();
     for(const p of players) {
@@ -2019,11 +2713,16 @@ function draw() {
     }
 
     if(mode === 'edit') {
-        ctx.fillStyle = 'rgba(255,210,63,0.96)';
+        ctx.fillStyle = 'rgba(214,255,63,0.96)';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('配置編集中: 選手をドラッグして場面づくり', fX0 + fW / 2, fY0 + 34);
     }
+
+    drawClearPanel();
+    drawGachaAnimation();
+    drawConfetti();
+    ctx.restore();
 }
 
 const LERP = 0.2;
@@ -2031,7 +2730,11 @@ const HOLD = 16;
 
 function loop() {
     let moving = false;
+    tick++;
     pulse *= 0.88;
+    shake *= 0.86;
+    if(shake < 0.3) shake = 0;
+    updateConfetti();
     if(gachaAnim > 0) gachaAnim--;
     for(let i = effects.length - 1; i >= 0; i--) {
         effects[i].life--;
@@ -2103,6 +2806,7 @@ function pickPlayer(x, y) {
 function pointerDown(e) {
     if(e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
     e.preventDefault();
+    sfx.unlock();
     if(activePointerId !== null) return;
     activePointerId = e.pointerId;
     if(cv.setPointerCapture) {
@@ -2176,10 +2880,16 @@ cv.addEventListener('pointercancel', pointerUp, {passive:false});
 document.getElementById('doPass').addEventListener('click', releasePass);
 document.getElementById('cancelPass').addEventListener('click', cancelAim);
 document.getElementById('shootBtn').addEventListener('click', doShoot);
-document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
-document.getElementById('retryLevelBtn').addEventListener('click', retryLevel);
+document.getElementById('nextLevelBtn').addEventListener('click', () => { sfx.tap(); nextLevel(); });
+document.getElementById('retryLevelBtn').addEventListener('click', () => { sfx.tap(); retryLevel(); });
 hintBtn.addEventListener('click', showHint);
 document.getElementById('undoBtn').addEventListener('click', undo);
+
+const muteBtn = document.getElementById('muteBtn');
+muteBtn.textContent = sfx.isMuted() ? '🔇' : '🔊';
+muteBtn.addEventListener('click', () => {
+    muteBtn.textContent = sfx.toggle() ? '🔇' : '🔊';
+});
 
 document.getElementById('resetBtn').addEventListener('click', () => {
     mode = 'drill';
@@ -2187,7 +2897,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     level = 1;
     goals = 0;
     clearedCount = 0;
-    reset(24);
+    reset();
 });
 
 editBtn.addEventListener('click', () => {
@@ -2230,6 +2940,70 @@ if(window.visualViewport) {
     window.visualViewport.addEventListener('resize', resizeGame);
 }
 document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+
+// ---------- コレクション図鑑 ----------
+const zukanEl = document.getElementById('zukan');
+const zukanGrid = document.getElementById('zukanGrid');
+const zukanFill = document.getElementById('zukanFill');
+const zukanRate = document.getElementById('zukanRate');
+const zukanInfo = document.getElementById('zukanInfo');
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+}
+
+function renderZukan() {
+    const owned = ownedKinds();
+    const rate = Math.round(owned / CARDS.length * 100);
+    zukanFill.style.width = rate + '%';
+    zukanRate.textContent = 'コンプ率 ' + rate + '%（' + owned + '/' + CARDS.length + '）';
+    const bonus = collectionBonus();
+    const gauge = '✦'.repeat(progress.pity) + '✧'.repeat(Math.max(0, PITY_MAX - progress.pity));
+    zukanInfo.innerHTML =
+        'コレクション効果: チャンス初期値 <b>+' + bonus + '</b>（アイテムカードで上昇 / コンプで +4）<br>' +
+        'キラキラゲージ ' + gauge + (progress.pity >= PITY_MAX ? ' → 次のガチャは <b>SR以上確定!</b>' : '（N・Rが続くとたまる。満タンで次がSR以上確定）') + '<br>' +
+        'おなじカードが出ると Lv アップ（最大 Lv' + MAX_CARD_LEVEL + '）。選手カードは Lv で少しずつ強くなるよ。';
+
+    const sorted = [...CARDS].sort((a, b) => b.rarity - a.rarity);
+    zukanGrid.innerHTML = sorted.map(c => {
+        const count = cardCount(c.id);
+        const rar = RARITIES[c.rarity];
+        if(count <= 0) {
+            return '<div class="card locked r' + c.rarity + '">'
+                + '<span class="ic">' + c.icon + '</span>'
+                + '<span class="nm">？？？</span>'
+                + '<span class="rt">' + rar.stars + '</span>'
+                + '<span class="ds">ゴールを決めてゲット!</span>'
+                + '</div>';
+        }
+        const lv = cardLevel(c.id);
+        const desc = c.kind === 'player' ? c.trait.desc : c.desc;
+        return '<div class="card r' + c.rarity + '">'
+            + (lv > 1 ? '<span class="lv">Lv' + lv + '</span>' : '')
+            + '<span class="ic">' + c.icon + '</span>'
+            + '<span class="nm">' + escapeHtml(c.title) + '</span>'
+            + '<span class="rt">' + rar.stars + ' ' + rar.short + '</span>'
+            + '<span class="ds">' + escapeHtml(desc) + (count > 1 ? '（×' + count + '）' : '') + '</span>'
+            + '</div>';
+    }).join('');
+}
+
+function refreshZukan() {
+    if(zukanEl.classList.contains('open')) renderZukan();
+}
+
+document.getElementById('zukanBtn').addEventListener('click', () => {
+    sfx.tap();
+    renderZukan();
+    zukanEl.classList.add('open');
+});
+document.getElementById('zukanClose').addEventListener('click', () => {
+    sfx.tap();
+    zukanEl.classList.remove('open');
+});
+zukanEl.addEventListener('click', (e) => {
+    if(e.target === zukanEl) zukanEl.classList.remove('open');
+});
 
 reset();
 loop();
