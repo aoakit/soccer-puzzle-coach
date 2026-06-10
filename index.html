@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>サッカー判断パズル NIGHT MATCH v4.3 オフボール指示</title>
+<title>サッカー判断パズル NIGHT MATCH v4.4</title>
 <style>
     :root{
         --bg0:#06100b;
@@ -441,21 +441,24 @@ const DIFFICULTY = {
         passReact:0.24,
         cutScale:0.54,
         farLane:2.35,
-        note:'相手の反応を短くして、良いコースが通りやすい設定です。'
+        orderLimit:3,
+        note:'相手の反応を短くして、良いコースが通りやすい設定です。指示は同時に3人まで。'
     },
     normal: {
         label:'ふつう',
         passReact:0.34,
         cutScale:0.68,
         farLane:2.8,
-        note:'v2.5相当。成功体験と守備の気づきのバランスを取った設定です。'
+        orderLimit:2,
+        note:'成功体験と守備の気づきのバランスを取った設定です。指示は同時に2人まで。'
     },
     hard: {
         label:'むずかしい',
         passReact:0.46,
         cutScale:0.82,
         farLane:3.15,
-        note:'相手が少し早く反応します。コースと受けた後をよく見よう。'
+        orderLimit:1,
+        note:'相手が少し早く反応します。指示は同時に1人だけ。誰を動かすかが勝負。'
     }
 };
 
@@ -985,6 +988,7 @@ let orderDragging = false;
 let orderDragX = 0;
 let orderDragY = 0;
 let pendingOrders = [];
+let orderSeq = 0;
 const effects = [];
 const history = [];
 
@@ -1606,6 +1610,10 @@ function rewardPass(from, to, evalObj) {
 }
 
 // ---------- オフボール指示 ----------
+function orderCount() {
+    return blues().filter(p => p.order).length;
+}
+
 function applyOrder(p) {
     const o = p.order;
     const moveLen = STEP * 1.15 * traitValue(p, 'speed');
@@ -1827,7 +1835,7 @@ function retryLevel() {
 
 function snapshot() {
     history.push({
-        players: players.map(p => ({ x:p.x, y:p.y, order: p.order ? { dx:p.order.dx, dy:p.order.dy } : null, freshRun: p.freshRun || 0 })),
+        players: players.map(p => ({ x:p.x, y:p.y, order: p.order ? { dx:p.order.dx, dy:p.order.dy } : null, orderSeq: p.orderSeq || 0, freshRun: p.freshRun || 0 })),
         holder: players.indexOf(ball.holder),
         chance,
         turnCount,
@@ -1847,6 +1855,7 @@ function undo() {
         players[i].x = players[i].tx = q.x;
         players[i].y = players[i].ty = q.y;
         players[i].order = q.order ? { dx:q.order.dx, dy:q.order.dy } : null;
+        players[i].orderSeq = q.orderSeq || 0;
         players[i].freshRun = q.freshRun || 0;
     });
     pendingOrders = [];
@@ -2559,6 +2568,7 @@ function drawRewardHud() {
     ctx.fillText('チャンス ' + Math.round(chance) + '%', x + w, top + 26);
     ctx.textAlign = 'left';
     let leftLine = '手数 ' + turnCount;
+    if(orderCount() > 0) leftLine += ' · 🏃' + orderCount() + '/' + activeDifficulty().orderLimit;
     if(combo >= 2) leftLine += ' · 🔥COMBO x' + combo;
     else leftLine += (hintUsed ? ' · ヒント使用' : ' · ノーヒント');
     ctx.fillStyle = combo >= 2 ? 'rgba(255,210,63,0.96)' : 'rgba(255,255,255,0.85)';
@@ -3002,7 +3012,7 @@ function pointerMove(e) {
     if(activePointerId !== null && e.pointerId !== activePointerId) return;
     if(mode !== 'edit' && orderCandidate) {
         const q0 = getEventPos(e);
-        if(orderDragging || Math.hypot(q0.x - downX, q0.y - downY) > R * 1.1) {
+        if(orderDragging || Math.hypot(q0.x - downX, q0.y - downY) > R * 1.6) {
             orderDragging = true;
             orderDragX = q0.x;
             orderDragY = q0.y;
@@ -3048,15 +3058,31 @@ function pointerUp(e) {
         const dy = q.y - p.y;
         const len = Math.hypot(dx, dy);
         if(len > R * 1.3) {
+            const limit = activeDifficulty().orderLimit;
+            let swapped = '';
+            if(!p.order && orderCount() >= limit) {
+                // 一番古い指示と自動入れかえ
+                const oldest = blues().filter(b => b.order).sort((a, b) => (a.orderSeq || 0) - (b.orderSeq || 0))[0];
+                if(oldest) {
+                    oldest.order = null;
+                    addTextEffect('指示を入れかえ', oldest.x, oldest.y - R * 2.3, '#ffd9a3');
+                    swapped = oldest.num + '番への指示と入れかえた。';
+                }
+            }
             p.order = { dx: dx / len, dy: dy / len };
+            p.orderSeq = ++orderSeq;
             sfx.tap();
-            addTextEffect('🏃 指示!', p.x, p.y - R * 2.3, '#7df0ff');
+            addTextEffect('🏃 指示! (' + orderCount() + '/' + limit + ')', p.x, p.y - R * 2.3, '#7df0ff');
             unlockAch('order');
-            setFeedback('', p.num + '番に走る方向を指示した。<span class="hint">次のパスかドリブルで、この矢印の方向へ動き直すよ。動いてもらってから空いたコースに出そう! もう一度引っぱると指示し直し。</span>');
+            setFeedback('', p.num + '番に走る方向を指示した（' + orderCount() + '/' + limit + '人）。' + swapped + '<span class="hint">次のパスかドリブルでこの方向へ動き直すよ。' + (limit === 1 ? '誰を動かすのが一番効くか考えよう!' : '動いてもらってから空いたコースに出そう!') + '</span>');
         }
         else {
-            p.order = null;
-            setFeedback('', p.num + '番への指示を取り消した。');
+            // 引っぱって選手の上で離す → 取り消し
+            if(p.order) {
+                p.order = null;
+                addTextEffect('指示とりけし', p.x, p.y - R * 2.3, '#ffd9a3');
+                setFeedback('', p.num + '番への指示を取り消した。');
+            }
         }
         return;
     }
@@ -3156,9 +3182,14 @@ editBtn.addEventListener('click', () => {
 
 difficultySel.addEventListener('change', () => {
     difficulty = difficultySel.value;
+    let trimmed = '';
+    if(orderCount() > activeDifficulty().orderLimit) {
+        for(const b of blues()) b.order = null;
+        trimmed = '<span class="hint"> 指示の上限が変わったため、出していた指示はリセットされました。</span>';
+    }
     computeField();
     restState();
-    setFeedback('', '<b>難易度: ' + activeDifficulty().label + '</b> ' + activeDifficulty().note);
+    setFeedback('', '<b>難易度: ' + activeDifficulty().label + '</b> ' + activeDifficulty().note + trimmed);
 });
 
 function resizeGame() {
