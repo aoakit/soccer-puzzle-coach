@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>サッカー判断パズル NIGHT MATCH v4.7 場面追加</title>
+<title>サッカー判断パズル NIGHT MATCH v4.8 場面拡張</title>
 <style>
     :root{
         --bg0:#06100b;
@@ -382,6 +382,10 @@
             <option value="normal" selected>ふつう</option>
             <option value="hard">むずかしい</option>
         </select>
+        <select id="sceneMode" aria-label="場面">
+            <option value="levels" selected>場面ローテ</option>
+            <option value="random">完全ランダム</option>
+        </select>
         <button id="hintBtn">ヒント</button>
         <button id="editBtn">配置編集</button>
         <button id="undoBtn">1手戻す</button>
@@ -434,6 +438,7 @@ const clearbar = document.getElementById('clearbar');
 const editBtn = document.getElementById('editBtn');
 const hintBtn = document.getElementById('hintBtn');
 const difficultySel = document.getElementById('difficulty');
+const sceneModeSel = document.getElementById('sceneMode');
 
 const DIFFICULTY = {
     easy: {
@@ -463,6 +468,8 @@ const DIFFICULTY = {
 };
 
 let difficulty = 'normal';
+let sceneMode = 'levels';
+let randomSetup = null;
 let W, H, fX0, fY0, fX1, fY1, fW, fH, R, STEP, AI_STEP, PASS_REACT_STEP, INTERCEPT_R, STEAL_R, MARK_TIGHT;
 
 function activeDifficulty() {
@@ -530,35 +537,7 @@ const RED_FORM  = [
 
 const LEVELS = [
     {
-        name:'レベル1: 前を見る',
-        red: RED_FORM
-    },
-    {
-        name:'レベル2: 中を閉じる相手',
-        red: [
-            [0.38,0.24], [0.62,0.24], [0.33,0.42], [0.50,0.37], [0.67,0.42], [0.43,0.57], [0.57,0.57]
-        ]
-    },
-    {
-        name:'レベル3: サイドへ誘導',
-        red: [
-            [0.30,0.23], [0.70,0.23], [0.20,0.43], [0.48,0.40], [0.80,0.43], [0.34,0.56], [0.66,0.56]
-        ]
-    },
-    {
-        name:'レベル4: FWをマーク',
-        red: [
-            [0.36,0.27], [0.64,0.27], [0.30,0.45], [0.52,0.38], [0.70,0.45], [0.40,0.50], [0.60,0.50]
-        ]
-    },
-    {
-        name:'レベル5: コースを先に消す',
-        red: [
-            [0.34,0.25], [0.66,0.25], [0.27,0.39], [0.50,0.35], [0.73,0.39], [0.45,0.53], [0.55,0.53]
-        ]
-    },
-    {
-        name:'レベル6: サイドからのカウンター',
+        name:'レベル1: サイドからのカウンター',
         holder:3,
         blue: [
             [0.28,0.78], [0.60,0.82], [0.14,0.58], [0.42,0.65], [0.72,0.67], [0.33,0.42], [0.60,0.47]
@@ -568,7 +547,7 @@ const LEVELS = [
         ]
     },
     {
-        name:'レベル7: サイドアタック',
+        name:'レベル2: サイドアタック',
         holder:5,
         blue: [
             [0.33,0.82], [0.58,0.82], [0.21,0.63], [0.48,0.65], [0.86,0.58], [0.56,0.45], [0.80,0.40]
@@ -578,7 +557,7 @@ const LEVELS = [
         ]
     },
     {
-        name:'レベル8: 中央突破',
+        name:'レベル3: 中央突破',
         holder:4,
         blue: [
             [0.31,0.82], [0.68,0.82], [0.31,0.62], [0.50,0.59], [0.69,0.62], [0.43,0.42], [0.57,0.42]
@@ -588,7 +567,7 @@ const LEVELS = [
         ]
     },
     {
-        name:'レベル9: 右だけ上がっている',
+        name:'レベル4: 右だけ上がっている',
         holder:2,
         blue: [
             [0.26,0.83], [0.62,0.78], [0.22,0.65], [0.48,0.67], [0.86,0.46], [0.45,0.50], [0.78,0.34]
@@ -598,7 +577,7 @@ const LEVELS = [
         ]
     },
     {
-        name:'レベル10: 反対側ドフリー',
+        name:'レベル5: 反対側ドフリー',
         holder:5,
         blue: [
             [0.32,0.82], [0.68,0.82], [0.16,0.52], [0.47,0.65], [0.82,0.60], [0.22,0.36], [0.64,0.45]
@@ -608,7 +587,7 @@ const LEVELS = [
         ]
     },
     {
-        name:'レベル11: 団子状態',
+        name:'レベル6: 団子状態',
         holder:4,
         blue: [
             [0.34,0.78], [0.62,0.78], [0.40,0.60], [0.50,0.61], [0.60,0.60], [0.45,0.46], [0.56,0.46]
@@ -618,13 +597,103 @@ const LEVELS = [
         ]
     },
     {
-        name:'レベル12: 左から作り直す',
+        name:'レベル7: 左から作り直す',
         holder:1,
         blue: [
             [0.18,0.76], [0.58,0.84], [0.26,0.58], [0.47,0.66], [0.74,0.62], [0.36,0.42], [0.64,0.43]
         ],
         red: [
             [0.34,0.25], [0.64,0.25], [0.22,0.43], [0.46,0.39], [0.74,0.42], [0.34,0.55], [0.60,0.55]
+        ]
+    },
+    {
+        name:'レベル8: 縦に急ぎたい場面',
+        holder:6,
+        blue: [
+            [0.30,0.82], [0.65,0.82], [0.25,0.64], [0.48,0.61], [0.72,0.66], [0.45,0.49], [0.58,0.33]
+        ],
+        red: [
+            [0.36,0.24], [0.64,0.24], [0.32,0.42], [0.51,0.39], [0.70,0.43], [0.43,0.55], [0.59,0.50]
+        ]
+    },
+    {
+        name:'レベル9: 後ろ向きで受けた場面',
+        holder:6,
+        blue: [
+            [0.28,0.82], [0.66,0.82], [0.24,0.62], [0.49,0.70], [0.74,0.62], [0.50,0.47], [0.64,0.39]
+        ],
+        red: [
+            [0.37,0.25], [0.63,0.25], [0.30,0.45], [0.50,0.43], [0.70,0.45], [0.47,0.51], [0.60,0.54]
+        ]
+    },
+    {
+        name:'レベル10: 逆サイドを見つける',
+        holder:3,
+        blue: [
+            [0.32,0.83], [0.70,0.80], [0.15,0.60], [0.39,0.66], [0.76,0.53], [0.27,0.42], [0.86,0.35]
+        ],
+        red: [
+            [0.31,0.25], [0.58,0.24], [0.22,0.41], [0.42,0.39], [0.62,0.43], [0.28,0.54], [0.50,0.55]
+        ]
+    },
+    {
+        name:'レベル11: ハーフスペース侵入',
+        holder:4,
+        blue: [
+            [0.29,0.82], [0.67,0.82], [0.25,0.61], [0.43,0.55], [0.73,0.64], [0.39,0.38], [0.63,0.43]
+        ],
+        red: [
+            [0.34,0.24], [0.63,0.25], [0.31,0.43], [0.45,0.39], [0.68,0.43], [0.38,0.51], [0.56,0.55]
+        ]
+    },
+    {
+        name:'レベル12: 前線が詰まった場面',
+        holder:2,
+        blue: [
+            [0.26,0.80], [0.64,0.80], [0.22,0.61], [0.50,0.66], [0.78,0.61], [0.43,0.35], [0.57,0.35]
+        ],
+        red: [
+            [0.36,0.22], [0.64,0.22], [0.35,0.36], [0.50,0.34], [0.65,0.36], [0.42,0.45], [0.58,0.45]
+        ]
+    },
+    {
+        name:'レベル13: 右で囲まれた場面',
+        holder:5,
+        blue: [
+            [0.32,0.84], [0.62,0.82], [0.24,0.64], [0.50,0.67], [0.78,0.58], [0.48,0.45], [0.68,0.39]
+        ],
+        red: [
+            [0.38,0.24], [0.66,0.24], [0.52,0.43], [0.68,0.42], [0.84,0.45], [0.62,0.53], [0.78,0.53]
+        ]
+    },
+    {
+        name:'レベル14: 左奥が空く場面',
+        holder:4,
+        blue: [
+            [0.31,0.82], [0.66,0.82], [0.18,0.48], [0.50,0.64], [0.76,0.62], [0.28,0.34], [0.61,0.45]
+        ],
+        red: [
+            [0.49,0.24], [0.72,0.25], [0.44,0.42], [0.60,0.40], [0.79,0.43], [0.50,0.54], [0.68,0.54]
+        ]
+    },
+    {
+        name:'レベル15: 中央で奪った直後',
+        holder:4,
+        blue: [
+            [0.34,0.78], [0.66,0.78], [0.30,0.57], [0.50,0.54], [0.70,0.57], [0.40,0.38], [0.62,0.40]
+        ],
+        red: [
+            [0.37,0.27], [0.63,0.27], [0.34,0.47], [0.50,0.50], [0.66,0.47], [0.43,0.59], [0.57,0.59]
+        ]
+    },
+    {
+        name:'レベル16: ゴール前の横パス',
+        holder:6,
+        blue: [
+            [0.30,0.82], [0.68,0.82], [0.24,0.60], [0.48,0.62], [0.76,0.55], [0.42,0.34], [0.62,0.34]
+        ],
+        red: [
+            [0.35,0.21], [0.65,0.21], [0.32,0.36], [0.50,0.33], [0.68,0.36], [0.43,0.43], [0.58,0.43]
         ]
     }
 ];
@@ -1049,7 +1118,61 @@ function nextRecruitText() {
     return '図鑑 ' + ownedKinds() + '/' + CARDS.length + ' ' + gauge;
 }
 
+function randomIn(min, max) {
+    return min + Math.random() * (max - min);
+}
+
+function randomPoint(existing, xMin, xMax, yMin, yMax, minGap) {
+    let best = null;
+    let bestScore = -1;
+    for(let tries = 0; tries < 80; tries++) {
+        const p = [randomIn(xMin, xMax), randomIn(yMin, yMax)];
+        const nearest = existing.length ? Math.min(...existing.map(q => Math.hypot(q[0] - p[0], q[1] - p[1]))) : 1;
+        if(nearest >= minGap) return p;
+        if(nearest > bestScore) {
+            best = p;
+            bestScore = nearest;
+        }
+    }
+    return best || [randomIn(xMin, xMax), randomIn(yMin, yMax)];
+}
+
+function makeRandomSetup() {
+    const holder = 1 + Math.floor(Math.random() * BLUE_FORM.length);
+    const sideBias = Math.random() < 0.5 ? -1 : 1;
+    const blue = [];
+    const red = [];
+    for(let i = 0; i < BLUE_FORM.length; i++) {
+        const role = BLUE_ROLES[i];
+        let yMin = role === 'DF' ? 0.70 : role === 'MF' ? 0.50 : 0.30;
+        let yMax = role === 'DF' ? 0.86 : role === 'MF' ? 0.70 : 0.50;
+        if(i + 1 === holder) {
+            yMin = randomIn(0.45, 0.70);
+            yMax = Math.min(0.82, yMin + 0.16);
+        }
+        const xCenter = i + 1 === holder ? randomIn(0.22, 0.78) : 0.50 + sideBias * randomIn(-0.10, 0.12);
+        blue.push(randomPoint(blue, Math.max(0.12, xCenter - 0.34), Math.min(0.88, xCenter + 0.34), yMin, yMax, 0.105));
+    }
+    for(let i = 0; i < RED_FORM.length; i++) {
+        const role = RED_ROLES[i];
+        const yMin = role === 'DF' ? 0.18 : role === 'MF' ? 0.34 : 0.48;
+        const yMax = role === 'DF' ? 0.34 : role === 'MF' ? 0.52 : 0.62;
+        const pressureSide = blue[holder - 1][0] < 0.5 ? -0.08 : 0.08;
+        red.push(randomPoint(red, 0.16 + pressureSide, 0.84 + pressureSide, yMin, yMax, 0.095));
+    }
+    return {
+        name:'ランダム配置',
+        holder,
+        blue: blue.map(([x, y]) => [clamp(x, 0.12, 0.88), clamp(y, 0.24, 0.86)]),
+        red: red.map(([x, y]) => [clamp(x, 0.16, 0.84), clamp(y, 0.18, 0.62)])
+    };
+}
+
 function levelSetup() {
+    if(sceneMode === 'random') {
+        if(!randomSetup) randomSetup = makeRandomSetup();
+        return randomSetup;
+    }
     const base = LEVELS[(level - 1) % LEVELS.length];
     const cycle = Math.floor((level - 1) / LEVELS.length);
     const mirror = cycle % 2 === 1;
@@ -1536,6 +1659,7 @@ function moveAroundAfterPass(from, receiver) {
 
 function currentLevelName() {
     const setup = levelSetup();
+    if(sceneMode === 'random') return setup.name;
     return 'Lv.' + level + ' ' + setup.name.replace(/^レベル\d+:\s*/, '');
 }
 
@@ -2000,6 +2124,7 @@ function undo() {
 }
 
 function reset(startChance) {
+    if(sceneMode === 'random') randomSetup = makeRandomSetup();
     buildPlayers();
     const setup = levelSetup();
     ball.holder = blues().find(p => p.num === setup.holder) || blues().find(p => p.num === 4) || blues()[0];
@@ -3325,6 +3450,14 @@ difficultySel.addEventListener('change', () => {
     computeField();
     restState();
     setFeedback('', '<b>難易度: ' + activeDifficulty().label + '</b> ' + activeDifficulty().note + trimmed);
+});
+
+sceneModeSel.addEventListener('change', () => {
+    sceneMode = sceneModeSel.value;
+    randomSetup = null;
+    reset(24 + collectionBonus());
+    const label = sceneMode === 'random' ? '完全ランダム' : '場面ローテ';
+    setFeedback('', '<b>場面: ' + label + '</b> ' + (sceneMode === 'random' ? '毎回ちがう配置から始まります。' : '用意された試合場面を順番に進みます。'));
 });
 
 function resizeGame() {
