@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>サッカー判断パズル NIGHT MATCH v4.4</title>
+<title>サッカー判断パズル NIGHT MATCH v4.5 名前表示</title>
 <style>
     :root{
         --bg0:#06100b;
@@ -516,6 +516,7 @@ const BLUE_FORM = [
     [0.40,0.46],
     [0.60,0.46]
 ];
+const PLAYER_NAMES = ['あおし','りつ','あおと','あゆむ','じょう','しいま','やまと','こう'];
 
 const RED_FORM  = [
     [0.35,0.22],
@@ -603,6 +604,21 @@ let level = 1;
 let goals = 0;
 let progress = loadProgress();
 let totalClears = progress.totalClears;
+let blueNameOrder = shuffledPlayerNames();
+
+function shuffledPlayerNames() {
+    const names = PLAYER_NAMES.slice();
+    for(let i = names.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [names[i], names[j]] = [names[j], names[i]];
+    }
+    return names;
+}
+
+function playerDisplayName(index) {
+    if(blueNameOrder.length < BLUE_FORM.length) blueNameOrder = shuffledPlayerNames();
+    return blueNameOrder[index % blueNameOrder.length];
+}
 
 function cardCount(id) {
     return progress.cards[id] || 0;
@@ -633,11 +649,11 @@ function buildPlayers() {
     const levelData = levelSetup();
     BLUE_FORM.forEach((f, i) => {
         const p = frac(f[0], f[1]);
-        players.push(mk('blue', i + 1, BLUE_ROLES[i], p.x, p.y, f[0], f[1], playerTrait(i)));
+        players.push(mk('blue', i + 1, BLUE_ROLES[i], p.x, p.y, f[0], f[1], playerTrait(i), playerDisplayName(i)));
     });
     levelData.red.forEach((f, i) => {
         const p = frac(f[0], f[1]);
-        players.push(mk('red', i + 1, RED_ROLES[i], p.x, p.y, f[0], f[1], null));
+        players.push(mk('red', i + 1, RED_ROLES[i], p.x, p.y, f[0], f[1], null, ''));
     });
 }
 
@@ -956,8 +972,8 @@ function levelSetup() {
     };
 }
 
-function mk(team, num, role, x, y, baseFx, baseFy, trait) {
-    return { team, num, role, trait, x, y, tx:x, ty:y, baseFx, baseFy };
+function mk(team, num, role, x, y, baseFx, baseFy, trait, displayName) {
+    return { team, num, role, trait, displayName, x, y, tx:x, ty:y, baseFx, baseFy };
 }
 
 const ball = { x:0, y:0, tx:0, ty:0, holder:null };
@@ -2240,7 +2256,8 @@ function restState() {
     statusEl.className = ({you:'you', ask:'ask', lost:'lost', clear:'clear'})[phase] || 'you';
     if(phase === 'you') {
         const holderTrait = ball.holder && ball.holder.trait && ball.holder.trait.name !== '標準' ? ' / ' + ball.holder.trait.name : '';
-        statusEl.innerHTML = currentLevelName() + ' / 青' + (ball.holder ? ball.holder.num : '') + '番' + holderTrait + '<small>🎖' + rankName() + '・図鑑' + ownedKinds() + '/' + CARDS.length + '・実績' + progress.ach.length + '/' + ACHIEVEMENTS.length + '・' + activeDifficulty().label + '</small>';
+        const holderName = ball.holder && ball.holder.displayName ? ' ' + ball.holder.displayName : '';
+        statusEl.innerHTML = currentLevelName() + ' / 青' + (ball.holder ? ball.holder.num : '') + '番' + holderName + holderTrait + '<small>🎖' + rankName() + '・図鑑' + ownedKinds() + '/' + CARDS.length + '・実績' + progress.ach.length + '/' + ACHIEVEMENTS.length + '・' + activeDifficulty().label + '</small>';
     }
     else if(phase === 'ask') {
         statusEl.innerHTML = (aiming ? aiming.num : '') + '番へ出す？<small>コースが通っていれば「出す」、消されていたら「やめる」</small>';
@@ -2486,15 +2503,26 @@ function drawPlayer(p) {
     ctx.shadowBlur = 0;
     ctx.textBaseline = 'alphabetic';
 
+    const hasName = p.team === 'blue' && p.displayName;
+    if(hasName) {
+        ctx.font = '900 10px sans-serif';
+        const nw = ctx.measureText(p.displayName).width + 12;
+        roundRectPath(p.x - nw / 2, p.y + R + 2, nw, 14, 7);
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fill();
+        ctx.fillStyle = '#14241a';
+        ctx.fillText(p.displayName, p.x, p.y + R + 12.5);
+    }
     const special = traitName(p);
     const label = p.role + (special ? ' ' + special : '');
     ctx.font = 'bold 9px sans-serif';
     const lw = ctx.measureText(label).width + 10;
-    roundRectPath(p.x - lw / 2, p.y + R + 3, lw, 13, 6.5);
+    const labelTop = hasName ? p.y + R + 18 : p.y + R + 3;
+    roundRectPath(p.x - lw / 2, labelTop, lw, 13, 6.5);
     ctx.fillStyle = special ? 'rgba(214,255,63,0.92)' : 'rgba(0,0,0,0.46)';
     ctx.fill();
     ctx.fillStyle = special ? '#11200f' : 'rgba(255,255,255,0.88)';
-    ctx.fillText(label, p.x, p.y + R + 12.5);
+    ctx.fillText(label, p.x, labelTop + 9.5);
 
     if(isHolder) {
         ctx.fillStyle = getCSS('--volt');
