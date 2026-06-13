@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>サッカー判断パズル NIGHT MATCH v4.5 名前表示</title>
+<title>サッカー判断パズル NIGHT MATCH v4.6 ガチャ拡張</title>
 <style>
     :root{
         --bg0:#06100b;
@@ -587,13 +587,37 @@ const CARDS = [
     { id:'p7', kind:'player', slot:6, rarity:4, icon:'👑', title:'青7番 フィニッシュ型', trait:SPECIAL_TRAITS[6] },
     { id:'b1', kind:'badge', rarity:1, icon:'🧦', title:'ラッキーソックス',     desc:'チャンス初期値 +1', bonus:1 },
     { id:'b2', kind:'badge', rarity:1, icon:'🥤', title:'スポーツドリンク',     desc:'チャンス初期値 +1', bonus:1 },
-    { id:'b3', kind:'badge', rarity:2, icon:'👟', title:'金のスパイク',         desc:'チャンス初期値 +2', bonus:2 },
-    { id:'b4', kind:'badge', rarity:2, icon:'🧤', title:'キーパーグローブ',     desc:'チャンス初期値 +2', bonus:2 },
-    { id:'b5', kind:'badge', rarity:2, icon:'📣', title:'おうえんメガホン',     desc:'チャンス初期値 +2', bonus:2 },
-    { id:'b6', kind:'badge', rarity:3, icon:'🏆', title:'ピカピカトロフィー',   desc:'チャンス初期値 +3', bonus:3 },
-    { id:'b7', kind:'badge', rarity:3, icon:'🎺', title:'ファンファーレラッパ', desc:'チャンス初期値 +3', bonus:3 },
-    { id:'b8', kind:'badge', rarity:4, icon:'🌈', title:'にじいろボール',       desc:'チャンス初期値 +5', bonus:5 },
-    { id:'b9', kind:'badge', rarity:4, icon:'🎖️', title:'キャプテンマーク',     desc:'チャンス初期値 +5', bonus:5 }
+    { id:'b3', kind:'badge', rarity:1, icon:'🧢', title:'練習キャップ',         desc:'チャンス初期値 +1', bonus:1 },
+    { id:'b4', kind:'badge', rarity:1, icon:'📝', title:'作戦メモ',             desc:'チャンス初期値 +1', bonus:1 },
+    { id:'b5', kind:'badge', rarity:1, icon:'🧊', title:'冷たいタオル',         desc:'チャンス初期値 +1', bonus:1 },
+    { id:'b6', kind:'badge', rarity:2, icon:'👟', title:'金のスパイク',         desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b7', kind:'badge', rarity:2, icon:'🧤', title:'キーパーグローブ',     desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b8', kind:'badge', rarity:2, icon:'📣', title:'おうえんメガホン',     desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b9', kind:'badge', rarity:2, icon:'🎽', title:'軽いビブス',           desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b10', kind:'badge', rarity:2, icon:'🪜', title:'ラダートレーニング',  desc:'チャンス初期値 +2', bonus:2 },
+    { id:'b11', kind:'badge', rarity:3, icon:'🏆', title:'ピカピカトロフィー',  desc:'チャンス初期値 +3', bonus:3 },
+    { id:'b12', kind:'badge', rarity:3, icon:'🎺', title:'ファンファーレラッパ',desc:'チャンス初期値 +3', bonus:3 },
+    { id:'b13', kind:'badge', rarity:3, icon:'🧠', title:'判断ノート',          desc:'チャンス初期値 +3', bonus:3 },
+    { id:'b14', kind:'badge', rarity:3, icon:'📡', title:'首ふりセンサー',      desc:'チャンス初期値 +3', bonus:3 },
+    { id:'b15', kind:'badge', rarity:4, icon:'🌈', title:'にじいろボール',      desc:'チャンス初期値 +5', bonus:5 },
+    { id:'b16', kind:'badge', rarity:4, icon:'🎖️', title:'キャプテンマーク',    desc:'チャンス初期値 +5', bonus:5 },
+    { id:'b17', kind:'badge', rarity:4, icon:'💎', title:'ダイヤのホイッスル',  desc:'チャンス初期値 +5', bonus:5 },
+    { id:'t1', kind:'training', rarity:1, icon:'👀', title:'見る練習',          desc:'受ける前にまわりを見るカード' },
+    { id:'t2', kind:'training', rarity:1, icon:'↗️', title:'斜め前パス練習',    desc:'相手の間を通すイメージカード' },
+    { id:'t3', kind:'training', rarity:1, icon:'🦶', title:'止める・蹴る練習',  desc:'次のプレーを速くする基本カード' },
+    { id:'t4', kind:'training', rarity:1, icon:'📍', title:'立ち位置チェック',  desc:'味方との距離を作るカード' },
+    { id:'t5', kind:'training', rarity:2, icon:'🔁', title:'ワンツー練習',      desc:'出して動く判断カード' },
+    { id:'t6', kind:'training', rarity:2, icon:'🧲', title:'相手を引きつける',  desc:'寄せてから空いた味方を使うカード' },
+    { id:'t7', kind:'training', rarity:2, icon:'🚪', title:'出口を作る',        desc:'詰まった時の逃げ道カード' },
+    { id:'t8', kind:'training', rarity:3, icon:'🪟', title:'窓を見つける',      desc:'細いパスコースを読むカード' },
+    { id:'t9', kind:'training', rarity:3, icon:'🧩', title:'三角形を作る',      desc:'次のパス先を残すカード' },
+    { id:'t10', kind:'training', rarity:4, icon:'🌟', title:'前を向く才能',     desc:'受けた後の景色を変えるレアカード' },
+    { id:'s1', kind:'tactic', rarity:2, icon:'🗺️', title:'サイドチェンジ',      desc:'混んだ場所から逆へ逃がす作戦カード' },
+    { id:'s2', kind:'tactic', rarity:2, icon:'⏱️', title:'テンポアップ',        desc:'相手が寄る前に次を選ぶ作戦カード' },
+    { id:'s3', kind:'tactic', rarity:3, icon:'🔺', title:'三角サポート',        desc:'持ち手をひとりにしない作戦カード' },
+    { id:'s4', kind:'tactic', rarity:3, icon:'🧱', title:'ブロックを外す',      desc:'守備の横ずれを利用する作戦カード' },
+    { id:'s5', kind:'tactic', rarity:4, icon:'🏅', title:'ゲームメーカー',      desc:'味方全員の動きを見る特別カード' },
+    { id:'s6', kind:'tactic', rarity:4, icon:'🔥', title:'勝負の一手',          desc:'ゴール前で決断する特別カード' }
 ];
 const MAX_CARD_LEVEL = 5;
 const PITY_MAX = 5;
